@@ -21,6 +21,8 @@ class CalendarScreen extends ConsumerWidget {
       }).toList();
     }
 
+    final dayEvents = _getEventsForDay(selectedDate);
+
     return Scaffold(
       body: Column(
         children: [
@@ -68,20 +70,22 @@ class CalendarScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8.0),
           Expanded(
-            child: ListView(
-              children: _getEventsForDay(selectedDate)
-                  .map((event) => EventCard(
-                        evento: event,
-                        onTap: () {
-                           Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EventFormScreen(evento: event),
-                            ),
-                          );
-                        },
-                      ))
-                  .toList(),
+            child: ListView.builder(
+              itemCount: dayEvents.length,
+              itemBuilder: (context, index) {
+                final event = dayEvents[index];
+                return EventCard(
+                  evento: event,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventFormScreen(evento: event),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
