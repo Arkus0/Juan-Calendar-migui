@@ -9,13 +9,31 @@ import '../services/notification_service.dart';
 
 const _uuid = Uuid();
 
+// 🔥 NUEVO: Providers para servicios (Inyección de Dependencias)
+/// Provider para HiveService (Singleton)
+final hiveServiceProvider = Provider<HiveService>((ref) {
+  return HiveService();
+});
+
+/// Provider para NotificationService (Singleton)
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService();
+});
+
 // --- Eventos ---
 
+/// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
 class EventsNotifier extends StateNotifier<List<Evento>> {
-  final HiveService _hiveService = HiveService();
-  final NotificationService _notificationService = NotificationService();
+  final HiveService _hiveService;
+  final NotificationService _notificationService;
 
-  EventsNotifier() : super([]) {
+  // Constructor con inyección de dependencias
+  EventsNotifier({
+    required HiveService hiveService,
+    required NotificationService notificationService,
+  })  : _hiveService = hiveService,
+        _notificationService = notificationService,
+        super([]) {
     _loadData();
   }
 
@@ -54,6 +72,7 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
         inicio: now.add(const Duration(days: 1, hours: 10)),
         fin: now.add(const Duration(days: 1, hours: 12)),
         lugar: 'Cafetería Central, Calle Sierpes 15, Sevilla',
+        notas: 'Discutir nuevos contratos y fechas de conciertos para el verano.',
         reminders: [30, 120], // 30 min y 2 horas antes
       ),
       Evento(
@@ -61,6 +80,7 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
         titulo: 'Cena familiar',
         tipo: 'personal',
         inicio: now.add(const Duration(days: 5, hours: 21)),
+        notas: 'Cumpleaños de mamá. Llevar el regalo.',
         reminders: [60], // 1 hora antes
       ),
       Evento(
@@ -81,6 +101,7 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
         inicio: now.add(const Duration(days: 3, hours: 19)),
         fin: now.add(const Duration(days: 3, hours: 22)),
         lugar: 'Local de ensayo, Triana',
+        notas: 'Practicar nuevas canciones para el próximo disco.',
         recurrence: RecurrenceRule(
           type: RecurrenceType.weekly,
           interval: 1,
@@ -121,17 +142,33 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
   }
 }
 
+/// 🔥 REFACTORIZADO: Provider con inyección de dependencias
 final eventsProvider = StateNotifierProvider<EventsNotifier, List<Evento>>((ref) {
-  return EventsNotifier();
+  // Obtener servicios del contenedor de Riverpod
+  final hiveService = ref.watch(hiveServiceProvider);
+  final notificationService = ref.watch(notificationServiceProvider);
+
+  // Crear el notifier con dependencias inyectadas
+  return EventsNotifier(
+    hiveService: hiveService,
+    notificationService: notificationService,
+  );
 });
 
 // --- Tareas ---
 
+/// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
 class TasksNotifier extends StateNotifier<List<Tarea>> {
-  final HiveService _hiveService = HiveService();
-  final NotificationService _notificationService = NotificationService();
+  final HiveService _hiveService;
+  final NotificationService _notificationService;
 
-  TasksNotifier() : super([]) {
+  // Constructor con inyección de dependencias
+  TasksNotifier({
+    required HiveService hiveService,
+    required NotificationService notificationService,
+  })  : _hiveService = hiveService,
+        _notificationService = notificationService,
+        super([]) {
     _loadData();
   }
 
@@ -242,16 +279,30 @@ class TasksNotifier extends StateNotifier<List<Tarea>> {
   }
 }
 
+/// 🔥 REFACTORIZADO: Provider con inyección de dependencias
 final tasksProvider = StateNotifierProvider<TasksNotifier, List<Tarea>>((ref) {
-  return TasksNotifier();
+  // Obtener servicios del contenedor de Riverpod
+  final hiveService = ref.watch(hiveServiceProvider);
+  final notificationService = ref.watch(notificationServiceProvider);
+
+  // Crear el notifier con dependencias inyectadas
+  return TasksNotifier(
+    hiveService: hiveService,
+    notificationService: notificationService,
+  );
 });
 
 // --- Contactos ---
 
+/// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
 class ContactsNotifier extends StateNotifier<List<Contacto>> {
-  final HiveService _hiveService = HiveService();
+  final HiveService _hiveService;
 
-  ContactsNotifier() : super([]) {
+  // Constructor con inyección de dependencias
+  ContactsNotifier({
+    required HiveService hiveService,
+  })  : _hiveService = hiveService,
+        super([]) {
     _loadData();
   }
 
@@ -326,6 +377,13 @@ class ContactsNotifier extends StateNotifier<List<Contacto>> {
   }
 }
 
+/// 🔥 REFACTORIZADO: Provider con inyección de dependencias
 final contactsProvider = StateNotifierProvider<ContactsNotifier, List<Contacto>>((ref) {
-  return ContactsNotifier();
+  // Obtener servicio del contenedor de Riverpod
+  final hiveService = ref.watch(hiveServiceProvider);
+
+  // Crear el notifier con dependencia inyectada
+  return ContactsNotifier(
+    hiveService: hiveService,
+  );
 });
