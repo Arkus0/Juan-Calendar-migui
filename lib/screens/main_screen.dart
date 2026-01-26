@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../providers/settings_provider.dart';
 import '../services/voice_service.dart';
 import '../services/ocr_service.dart';
 import '../widgets/proposal_dialog.dart';
@@ -10,19 +13,20 @@ import 'agenda_screen.dart';
 import 'contacts_screen.dart';
 import 'settings_screen.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   late StreamSubscription _intentDataStreamSubscription;
   final VoiceService _voiceService = VoiceService();
   final OcrService _ocrService = OcrService();
   bool _isListening = false;
+  bool _initialViewSet = false;
 
   final List<Widget> _screens = const [
     CalendarScreen(),
@@ -45,14 +49,18 @@ class _MainScreenState extends State<MainScreen> {
 
   void _initSharingListener() {
     // Stream
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
+    _intentDataStreamSubscription =
+        ReceiveSharingIntent.instance.getMediaStream().listen(
+            (List<SharedMediaFile> value) {
       _processSharedFiles(value);
     }, onError: (err) {
       print("getIntentDataStream error: $err");
     });
 
     // Initial
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance
+        .getInitialMedia()
+        .then((List<SharedMediaFile> value) {
       if (value.isNotEmpty) {
         _processSharedFiles(value);
         ReceiveSharingIntent.instance.reset();
@@ -76,7 +84,8 @@ class _MainScreenState extends State<MainScreen> {
           _showProposal(text);
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo extraer texto de la imagen.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No se pudo extraer texto de la imagen.')));
           }
         }
       }
@@ -103,58 +112,76 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            if (!_isListening) {
-               _isListening = true;
-               _voiceService.startListening(
-                 onResult: (text) {
-                   setState(() => recognizedText = text);
-                 },
-                 onListeningStateChanged: (isListening) {
-                    if (!isListening) {
-                      _isListening = false;
-                      if (Navigator.canPop(dialogContext)) {
-                        Navigator.pop(dialogContext);
-                      }
-                      if (recognizedText.isNotEmpty) {
-                        _showProposal(recognizedText);
-                      }
+        return StatefulBuilder(builder: (context, setState) {
+          if (!_isListening) {
+            _isListening = true;
+            _voiceService.startListening(
+                onResult: (text) {
+                  setState(() => recognizedText = text);
+                },
+                onListeningStateChanged: (isListening) {
+                  if (!isListening) {
+                    _isListening = false;
+                    if (Navigator.canPop(dialogContext)) {
+                      Navigator.pop(dialogContext);
                     }
-                 }
-               );
-            }
-
-            return AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.mic, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(recognizedText.isEmpty ? 'Escuchando...' : recognizedText, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                       _voiceService.stopListening();
-                    },
-                    child: const Text('Detener'),
-                  )
-                ],
-              ),
-            );
+                    if (recognizedText.isNotEmpty) {
+                      _showProposal(recognizedText);
+                    }
+                  }
+                });
           }
-        );
-      }
+
+          return AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.mic, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(recognizedText.isEmpty ? 'Escuchando...' : recognizedText,
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    _voiceService.stopListening();
+                  },
+                  child: const Text('Detener'),
+                )
+              ],
+            ),
+          );
+        });
+      },
     ).then((_) {
-       if (_isListening) {
-         _voiceService.stopListening();
-         _isListening = false;
-       }
+      if (_isListening) {
+        _voiceService.stopListening();
+        _isListening = false;
+      }
     });
+  }
+
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final userSettings = ref.watch(userSettingsProvider);
+    final theme = Theme.of(context);
+
+    // Establecer vista por defecto solo una vez al inicio
+    if (!_initialViewSet) {
+      _initialViewSet = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (userSettings.defaultView == 'agenda' && _currentIndex == 0) {
+          setState(() => _currentIndex = 1);
+        }
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Musician Organizer'),
@@ -164,15 +191,9 @@ class _MainScreenState extends State<MainScreen> {
             tooltip: 'Añadir por voz',
             onPressed: _showVoiceDialog,
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
+          const SizedBox(width: 4),
+          _buildProfileAvatar(userSettings, theme),
+          const SizedBox(width: 12),
         ],
       ),
       body: IndexedStack(
@@ -200,6 +221,54 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Contactos',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Construye el avatar de perfil para el AppBar
+  Widget _buildProfileAvatar(UserSettings settings, ThemeData theme) {
+    final hasImage = settings.hasProfileImage;
+    final initials = settings.initials;
+    final colorScheme = theme.colorScheme;
+
+    return GestureDetector(
+      onTap: _navigateToProfile,
+      child: Tooltip(
+        message: 'Perfil y Ajustes',
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: colorScheme.primary.withOpacity(0.3),
+              width: 2,
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: hasImage
+                ? Colors.transparent
+                : colorScheme.primaryContainer,
+            backgroundImage: hasImage
+                ? FileImage(File(settings.profileImagePath!))
+                : null,
+            child: hasImage
+                ? null
+                : initials.isNotEmpty
+                    ? Text(
+                        initials,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        size: 20,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+          ),
+        ),
       ),
     );
   }
