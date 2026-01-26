@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import '../models/evento.dart';
 import '../models/tarea.dart';
+import '../models/recurrence_rule.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -115,85 +116,152 @@ class NotificationService {
   }
 
   /// Programa notificaciones para un evento
+  /// 🔥 CORREGIDO: Ahora soporta eventos recurrentes
   Future<void> scheduleEventNotifications(Evento evento) async {
     if (!_initialized) await initialize();
 
-    // Cancelar notificaciones previas si existe
+    // Cancelar todas las notificaciones previas de este evento
     await cancelEventNotifications(evento.id);
 
-    // Si el evento ya pasó, no programar notificaciones
-    if (evento.inicio.isBefore(DateTime.now())) return;
+    // 🔥 NUEVA LÓGICA: Verificar si el evento tiene recurrencia
+    List<Evento> eventInstances;
 
-    for (var i = 0; i < evento.reminders.length; i++) {
-      final reminder = evento.reminders[i];
-      final notificationTime = evento.inicio.subtract(Duration(minutes: reminder));
+    if (evento.recurrence != null && evento.recurrence!.type != RecurrenceType.none) {
+      // Evento recurrente: generar todas las instancias
+      eventInstances = evento.generateRecurringInstances();
+      print('📅 Evento recurrente detectado: ${evento.titulo}');
+      print('   Programando notificaciones para ${eventInstances.length} instancias');
+    } else {
+      // Evento único: usar solo este evento
+      eventInstances = [evento];
+    }
 
-      // Solo programar si la notificación es futura
-      if (notificationTime.isAfter(DateTime.now())) {
-        final notificationId = _getEventNotificationId(evento.id, i);
+    // Programar notificaciones para cada instancia
+    int totalScheduled = 0;
+    for (var instanceIndex = 0; instanceIndex < eventInstances.length; instanceIndex++) {
+      final instance = eventInstances[instanceIndex];
 
-        String title;
-        String body;
+      // Si la instancia ya pasó, no programar notificaciones
+      if (instance.inicio.isBefore(DateTime.now())) {
+        continue;
+      }
 
-        if (evento.isBolo) {
-          title = '🎸 ¡Bolo hoy!';
-          body = '${evento.titulo}\n¡Prepara tu guitarra y el rider!';
-          if (evento.lugar != null) {
-            body += '\n📍 ${evento.lugar}';
+      // Programar cada recordatorio para esta instancia
+      for (var reminderIndex = 0; reminderIndex < instance.reminders.length; reminderIndex++) {
+        final reminder = instance.reminders[reminderIndex];
+        final notificationTime = instance.inicio.subtract(Duration(minutes: reminder));
+
+        // Solo programar si la notificación es futura
+        if (notificationTime.isAfter(DateTime.now())) {
+          // 🔥 NUEVO: ID único que combina evento + instancia + recordatorio
+          final notificationId = _getRecurringEventNotificationId(
+            evento.id,
+            instanceIndex,
+            reminderIndex,
+          );
+
+          String title;
+          String body;
+
+          if (instance.isBolo) {
+            title = '🎸 ¡Bolo hoy!';
+            body = '${instance.titulo}\n¡Prepara tu guitarra y el rider!';
+            if (instance.lugar != null) {
+              body += '\n📍 ${instance.lugar}';
+            }
+          } else if (instance.isReunion) {
+            title = '📅 Reunión próximamente';
+            body = instance.titulo;
+            if (instance.lugar != null) {
+              body += '\n📍 ${instance.lugar}';
+            }
+          } else {
+            title = '📌 Evento próximamente';
+            body = instance.titulo;
           }
-        } else if (evento.isReunion) {
-          title = '📅 Reunión próximamente';
-          body = evento.titulo;
-          if (evento.lugar != null) {
-            body += '\n📍 ${evento.lugar}';
-          }
-        } else {
-          title = '📌 Evento próximamente';
-          body = evento.titulo;
+
+          await _scheduleNotification(
+            id: notificationId,
+            title: title,
+            body: body,
+            scheduledDate: notificationTime,
+            channelId: instance.isBolo ? 'bolo_channel' : 'evento_channel',
+            payload: 'evento:${evento.id}:$instanceIndex',
+          );
+
+          totalScheduled++;
         }
-
-        await _scheduleNotification(
-          id: notificationId,
-          title: title,
-          body: body,
-          scheduledDate: notificationTime,
-          channelId: evento.isBolo ? 'bolo_channel' : 'evento_channel',
-          payload: 'evento:${evento.id}',
-        );
       }
     }
+
+    print('✅ Programadas $totalScheduled notificaciones para "${evento.titulo}"');
   }
 
   /// Programa notificaciones para una tarea
+  /// 🔥 CORREGIDO: Ahora soporta tareas recurrentes
   Future<void> scheduleTaskNotifications(Tarea tarea) async {
     if (!_initialized) await initialize();
 
     // Cancelar notificaciones previas si existe
     await cancelTaskNotifications(tarea.id);
 
-    // Si la tarea está completada o ya pasó, no programar
-    if (tarea.completada || tarea.fechaCompleta.isBefore(DateTime.now())) {
+    // Si la tarea está completada, no programar
+    if (tarea.completada) {
       return;
     }
 
-    for (var i = 0; i < tarea.reminders.length; i++) {
-      final reminder = tarea.reminders[i];
-      final notificationTime = tarea.fechaCompleta.subtract(Duration(minutes: reminder));
+    // 🔥 NUEVA LÓGICA: Verificar si la tarea tiene recurrencia
+    List<Tarea> taskInstances;
 
-      // Solo programar si la notificación es futura
-      if (notificationTime.isAfter(DateTime.now())) {
-        final notificationId = _getTaskNotificationId(tarea.id, i);
+    if (tarea.recurrence != null && tarea.recurrence!.type != RecurrenceType.none) {
+      // Tarea recurrente: generar todas las instancias
+      taskInstances = tarea.generateRecurringInstances();
+      print('🔄 Tarea recurrente detectada: ${tarea.descripcion}');
+      print('   Programando notificaciones para ${taskInstances.length} instancias');
+    } else {
+      // Tarea única: usar solo esta tarea
+      taskInstances = [tarea];
+    }
 
-        await _scheduleNotification(
-          id: notificationId,
-          title: '✅ No olvides:',
-          body: tarea.descripcion,
-          scheduledDate: notificationTime,
-          channelId: 'tarea_channel',
-          payload: 'tarea:${tarea.id}',
-        );
+    // Programar notificaciones para cada instancia
+    int totalScheduled = 0;
+    for (var instanceIndex = 0; instanceIndex < taskInstances.length; instanceIndex++) {
+      final instance = taskInstances[instanceIndex];
+
+      // Si la instancia ya pasó, no programar
+      if (instance.fechaCompleta.isBefore(DateTime.now())) {
+        continue;
+      }
+
+      // Programar cada recordatorio para esta instancia
+      for (var reminderIndex = 0; reminderIndex < instance.reminders.length; reminderIndex++) {
+        final reminder = instance.reminders[reminderIndex];
+        final notificationTime = instance.fechaCompleta.subtract(Duration(minutes: reminder));
+
+        // Solo programar si la notificación es futura
+        if (notificationTime.isAfter(DateTime.now())) {
+          // 🔥 NUEVO: ID único que combina tarea + instancia + recordatorio
+          final notificationId = _getRecurringTaskNotificationId(
+            tarea.id,
+            instanceIndex,
+            reminderIndex,
+          );
+
+          await _scheduleNotification(
+            id: notificationId,
+            title: '✅ No olvides:',
+            body: instance.descripcion,
+            scheduledDate: notificationTime,
+            channelId: 'tarea_channel',
+            payload: 'tarea:${tarea.id}:$instanceIndex',
+          );
+
+          totalScheduled++;
+        }
       }
     }
+
+    print('✅ Programadas $totalScheduled notificaciones para tarea "${tarea.descripcion}"');
   }
 
   /// Programa una notificación individual
@@ -238,19 +306,36 @@ class NotificationService {
     );
   }
 
-  /// Cancela todas las notificaciones de un evento
+  /// Cancela todas las notificaciones de un evento (incluyendo instancias recurrentes)
+  /// 🔥 MEJORADO: Ahora cancela notificaciones de todas las instancias
   Future<void> cancelEventNotifications(String eventId) async {
-    // Cancelar hasta 10 recordatorios posibles (más que suficiente)
-    for (var i = 0; i < 10; i++) {
-      await _notifications.cancel(_getEventNotificationId(eventId, i));
+    // Cancelar notificaciones de hasta 100 instancias con hasta 10 recordatorios cada una
+    // (100 instancias * 10 recordatorios = 1000 notificaciones posibles)
+    for (var instanceIndex = 0; instanceIndex < 100; instanceIndex++) {
+      for (var reminderIndex = 0; reminderIndex < 10; reminderIndex++) {
+        final notificationId = _getRecurringEventNotificationId(
+          eventId,
+          instanceIndex,
+          reminderIndex,
+        );
+        await _notifications.cancel(notificationId);
+      }
     }
   }
 
-  /// Cancela todas las notificaciones de una tarea
+  /// Cancela todas las notificaciones de una tarea (incluyendo instancias recurrentes)
+  /// 🔥 MEJORADO: Ahora cancela notificaciones de todas las instancias
   Future<void> cancelTaskNotifications(String taskId) async {
-    // Cancelar hasta 10 recordatorios posibles
-    for (var i = 0; i < 10; i++) {
-      await _notifications.cancel(_getTaskNotificationId(taskId, i));
+    // Cancelar notificaciones de hasta 100 instancias con hasta 10 recordatorios cada una
+    for (var instanceIndex = 0; instanceIndex < 100; instanceIndex++) {
+      for (var reminderIndex = 0; reminderIndex < 10; reminderIndex++) {
+        final notificationId = _getRecurringTaskNotificationId(
+          taskId,
+          instanceIndex,
+          reminderIndex,
+        );
+        await _notifications.cancel(notificationId);
+      }
     }
   }
 
@@ -264,12 +349,37 @@ class NotificationService {
     return await _notifications.pendingNotificationRequests();
   }
 
-  /// Genera un ID único para notificación de evento
+  /// 🔥 NUEVO: Genera un ID único para notificación de evento recurrente
+  /// Combina: eventId + instanceIndex + reminderIndex
+  int _getRecurringEventNotificationId(
+    String eventId,
+    int instanceIndex,
+    int reminderIndex,
+  ) {
+    // Crear un string único combinando los tres parámetros
+    final uniqueString = '${eventId}_${instanceIndex}_$reminderIndex';
+    return uniqueString.hashCode.abs() % 2147483647;
+  }
+
+  /// 🔥 NUEVO: Genera un ID único para notificación de tarea recurrente
+  /// Combina: taskId + instanceIndex + reminderIndex
+  int _getRecurringTaskNotificationId(
+    String taskId,
+    int instanceIndex,
+    int reminderIndex,
+  ) {
+    // Crear un string único combinando los tres parámetros
+    // Añadimos 'T' para diferenciar de eventos
+    final uniqueString = 'T_${taskId}_${instanceIndex}_$reminderIndex';
+    return uniqueString.hashCode.abs() % 2147483647;
+  }
+
+  /// Genera un ID único para notificación de evento (legacy - mantener por compatibilidad)
   int _getEventNotificationId(String eventId, int reminderIndex) {
     return ('${eventId.hashCode}$reminderIndex').hashCode.abs() % 2147483647;
   }
 
-  /// Genera un ID único para notificación de tarea
+  /// Genera un ID único para notificación de tarea (legacy - mantener por compatibilidad)
   int _getTaskNotificationId(String taskId, int reminderIndex) {
     return ('${taskId.hashCode}${reminderIndex}1').hashCode.abs() % 2147483647;
   }
