@@ -10,8 +10,15 @@ import 'contact_form_screen.dart';
 
 class EventFormScreen extends ConsumerStatefulWidget {
   final Evento? evento;
+  final String? initialTitle;
+  final String? initialType;
 
-  const EventFormScreen({Key? key, this.evento}) : super(key: key);
+  const EventFormScreen({
+    Key? key,
+    this.evento,
+    this.initialTitle,
+    this.initialType,
+  }) : super(key: key);
 
   @override
   _EventFormScreenState createState() => _EventFormScreenState();
@@ -33,10 +40,10 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
   void initState() {
     super.initState();
     final e = widget.evento;
-    _titleController = TextEditingController(text: e?.titulo ?? '');
+    _titleController = TextEditingController(text: e?.titulo ?? widget.initialTitle ?? '');
     _placeController = TextEditingController(text: e?.lugar ?? '');
     _notesController = TextEditingController(text: e?.notas ?? '');
-    _type = e?.tipo ?? 'bolo';
+    _type = e?.tipo ?? widget.initialType ?? 'bolo';
     _startDate = e?.inicio ?? DateTime.now();
     _endDate = e?.fin;
   }

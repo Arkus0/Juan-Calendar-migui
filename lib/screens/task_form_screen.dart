@@ -8,8 +8,13 @@ import '../providers/app_providers.dart';
 
 class TaskFormScreen extends ConsumerStatefulWidget {
   final Tarea? tarea;
+  final String? initialDescription;
 
-  const TaskFormScreen({Key? key, this.tarea}) : super(key: key);
+  const TaskFormScreen({
+    Key? key,
+    this.tarea,
+    this.initialDescription,
+  }) : super(key: key);
 
   @override
   _TaskFormScreenState createState() => _TaskFormScreenState();
@@ -24,7 +29,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   @override
   void initState() {
     super.initState();
-    _descController = TextEditingController(text: widget.tarea?.descripcion ?? '');
+    _descController = TextEditingController(text: widget.tarea?.descripcion ?? widget.initialDescription ?? '');
     _catController = TextEditingController(text: widget.tarea?.categoria ?? '');
     // Default to selected date from provider if new task, or today
     if (widget.tarea != null) {
