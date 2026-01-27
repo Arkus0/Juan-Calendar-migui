@@ -7,6 +7,8 @@ import 'package:musician_organizer/providers/data_providers.dart';
 import 'package:musician_organizer/providers/settings_provider.dart';
 import 'package:musician_organizer/screens/calendar_screen.dart';
 import 'package:musician_organizer/services/preferences_service.dart';
+import 'package:musician_organizer/services/hive_service.dart';
+import 'package:musician_organizer/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 final fixedDate = DateTime(2024, 6, 15);
@@ -23,10 +25,37 @@ class MockPreferencesService implements PreferencesService {
   Future<void> saveSelectedDate(DateTime date) async {}
 }
 
+class MockHiveService implements HiveService {
+  final List<Evento> events;
+  MockHiveService(this.events);
+
+  @override
+  List<Evento> getAllEventos() => events;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class MockNotificationService implements NotificationService {
+  @override
+  Future<void> scheduleEventNotifications(Evento evento) async {}
+
+  @override
+  Future<void> cancelEventNotifications(String id) async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 // Custom EventsNotifier to load test dataset
 class TestEventsNotifier extends EventsNotifier {
   final List<Evento> _initial;
-  TestEventsNotifier(this._initial) {
+  TestEventsNotifier(this._initial) : super(
+    hiveService: MockHiveService(_initial),
+    notificationService: MockNotificationService()
+  ) {
+    // state is set by super constructor calling _loadData -> getAllEventos -> returns _initial
+    // But we can set it here too to be sure
     state = _initial;
   }
 }
@@ -52,12 +81,16 @@ void main() {
     });
 
     final mockPrefs = MockPreferencesService();
+    final mockHive = MockHiveService(testEvents);
+    final mockNotification = MockNotificationService();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           // Override the service provider to inject our mock
           preferencesServiceProvider.overrideWithValue(mockPrefs),
+          hiveServiceProvider.overrideWithValue(mockHive),
+          notificationServiceProvider.overrideWithValue(mockNotification),
           // Override selectedDateProvider to ensure correct initial state
           selectedDateProvider.overrideWith((ref) {
             final notifier = SelectedDateNotifier(mockPrefs);
