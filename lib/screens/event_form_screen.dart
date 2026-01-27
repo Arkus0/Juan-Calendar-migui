@@ -14,14 +14,14 @@ class EventFormScreen extends ConsumerStatefulWidget {
   final String? initialType;
 
   const EventFormScreen({
-    Key? key,
+    super.key,
     this.evento,
     this.initialTitle,
     this.initialType,
-  }) : super(key: key);
+  });
 
   @override
-  _EventFormScreenState createState() => _EventFormScreenState();
+  ConsumerState<EventFormScreen> createState() => _EventFormScreenState();
 }
 
 class _EventFormScreenState extends ConsumerState<EventFormScreen> {
@@ -65,11 +65,15 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
       lastDate: DateTime(2030),
     );
 
+    if (!mounted) return;
+
     if (pickedDate != null) {
       final pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(initialDate),
       );
+
+      if (!mounted) return;
 
       if (pickedTime != null) {
         final newDateTime = DateTime(
@@ -124,10 +128,11 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
     final template = ref.read(dossierTemplateProvider);
     final message = template.replaceAll('[Nombre]', contact.nombre);
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await WhatsAppService().sendDossier(phone: contact.telefono, message: message);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 

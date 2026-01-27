@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import '../models/evento.dart';
@@ -98,7 +99,7 @@ class NotificationService {
   void _onNotificationTap(NotificationResponse response) {
     // Aquí puedes navegar a la pantalla correspondiente
     // basándote en response.payload
-    print('Notificación tocada: ${response.payload}');
+    debugPrint('Notificación tocada: ${response.payload}');
   }
 
   /// Solicita permisos de notificación (principalmente para iOS)
@@ -129,8 +130,8 @@ class NotificationService {
     if (evento.recurrence != null && evento.recurrence!.type != RecurrenceType.none) {
       // Evento recurrente: generar todas las instancias
       eventInstances = evento.generateRecurringInstances();
-      print('📅 Evento recurrente detectado: ${evento.titulo}');
-      print('   Programando notificaciones para ${eventInstances.length} instancias');
+      debugPrint('📅 Evento recurrente detectado: ${evento.titulo}');
+      debugPrint('   Programando notificaciones para ${eventInstances.length} instancias');
     } else {
       // Evento único: usar solo este evento
       eventInstances = [evento];
@@ -194,7 +195,7 @@ class NotificationService {
       }
     }
 
-    print('✅ Programadas $totalScheduled notificaciones para "${evento.titulo}"');
+    debugPrint('✅ Programadas $totalScheduled notificaciones para "${evento.titulo}"');
   }
 
   /// Programa notificaciones para una tarea
@@ -216,8 +217,8 @@ class NotificationService {
     if (tarea.recurrence != null && tarea.recurrence!.type != RecurrenceType.none) {
       // Tarea recurrente: generar todas las instancias
       taskInstances = tarea.generateRecurringInstances();
-      print('🔄 Tarea recurrente detectada: ${tarea.descripcion}');
-      print('   Programando notificaciones para ${taskInstances.length} instancias');
+      debugPrint('🔄 Tarea recurrente detectada: ${tarea.descripcion}');
+      debugPrint('   Programando notificaciones para ${taskInstances.length} instancias');
     } else {
       // Tarea única: usar solo esta tarea
       taskInstances = [tarea];
@@ -261,7 +262,7 @@ class NotificationService {
       }
     }
 
-    print('✅ Programadas $totalScheduled notificaciones para tarea "${tarea.descripcion}"');
+    debugPrint('✅ Programadas $totalScheduled notificaciones para tarea "${tarea.descripcion}"');
   }
 
   /// Programa una notificación individual
@@ -375,11 +376,14 @@ class NotificationService {
   }
 
   /// Genera un ID único para notificación de evento (legacy - mantener por compatibilidad)
+  // Legacy helpers kept for compatibility; not referenced directly by current scheduling logic.
+  // ignore: unused_element
   int _getEventNotificationId(String eventId, int reminderIndex) {
     return ('${eventId.hashCode}$reminderIndex').hashCode.abs() % 2147483647;
   }
 
   /// Genera un ID único para notificación de tarea (legacy - mantener por compatibilidad)
+  // ignore: unused_element
   int _getTaskNotificationId(String taskId, int reminderIndex) {
     return ('${taskId.hashCode}${reminderIndex}1').hashCode.abs() % 2147483647;
   }

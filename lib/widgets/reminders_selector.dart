@@ -132,13 +132,14 @@ class _ReminderDialogState extends State<_ReminderDialog> {
             ),
             const SizedBox(height: 8),
             ..._presets.map((preset) {
-              return RadioListTile<int>(
+              return ListTile(
                 title: Text(preset['label']),
-                value: preset['minutes'],
-                groupValue: _selectedPreset,
-                onChanged: (value) {
+                leading: Icon(
+                  _selectedPreset == preset['minutes'] ? Icons.radio_button_checked : Icons.radio_button_off,
+                ),
+                onTap: () {
                   setState(() {
-                    _selectedPreset = value;
+                    _selectedPreset = preset['minutes'];
                   });
                 },
               );
@@ -168,7 +169,7 @@ class _ReminderDialogState extends State<_ReminderDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _customUnit,
+                    initialValue: _customUnit,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

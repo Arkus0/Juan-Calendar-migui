@@ -5,10 +5,10 @@ import '../screens/task_form_screen.dart';
 class ProposalDialog extends StatefulWidget {
   final String text;
 
-  const ProposalDialog({Key? key, required this.text}) : super(key: key);
+  const ProposalDialog({super.key, required this.text});
 
   @override
-  _ProposalDialogState createState() => _ProposalDialogState();
+  State<ProposalDialog> createState() => _ProposalDialogState();
 }
 
 class _ProposalDialogState extends State<ProposalDialog> {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceService {
@@ -8,11 +9,11 @@ class VoiceService {
     if (_isInitialized) return true;
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (error) => print('Voice error: $error'),
-        onStatus: (status) => print('Voice status: $status'),
+        onError: (error) => debugPrint('Voice error: $error'),
+        onStatus: (status) => debugPrint('Voice status: $status'),
       );
     } catch (e) {
-      print('Voice init error: $e');
+      debugPrint('Voice init error: $e');
       _isInitialized = false;
     }
     return _isInitialized;
@@ -30,8 +31,8 @@ class VoiceService {
       }
     }
 
-    var locales = await _speechToText.locales();
-    var selectedLocale;
+    final List<LocaleName> locales = await _speechToText.locales();
+    LocaleName? selectedLocale;
     try {
       selectedLocale = locales.firstWhere(
         (element) => element.localeId.startsWith('es'),

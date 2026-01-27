@@ -6,10 +6,10 @@ class ContactCard extends StatelessWidget {
   final VoidCallback onSendDossier;
 
   const ContactCard({
-    Key? key,
+    super.key,
     required this.contacto,
     required this.onSendDossier,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -7,6 +7,8 @@ import 'package:musician_organizer/providers/data_providers.dart';
 import 'package:musician_organizer/providers/settings_provider.dart';
 import 'package:musician_organizer/screens/calendar_screen.dart';
 import 'package:musician_organizer/services/preferences_service.dart';
+import 'package:musician_organizer/services/hive_service.dart';
+import 'package:musician_organizer/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 final fixedDate = DateTime(2024, 6, 15);
@@ -26,7 +28,8 @@ class MockPreferencesService implements PreferencesService {
 // Custom EventsNotifier to load test dataset
 class TestEventsNotifier extends EventsNotifier {
   final List<Evento> _initial;
-  TestEventsNotifier(this._initial) {
+  TestEventsNotifier(this._initial)
+      : super(hiveService: HiveService(), notificationService: NotificationService(), loadOnInit: false) {
     state = _initial;
   }
 }

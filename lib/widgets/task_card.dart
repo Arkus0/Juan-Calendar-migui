@@ -5,7 +5,7 @@ class TaskCard extends StatelessWidget {
   final Tarea tarea;
   final ValueChanged<bool?>? onToggle;
 
-  const TaskCard({Key? key, required this.tarea, this.onToggle}) : super(key: key);
+  const TaskCard({super.key, required this.tarea, this.onToggle});
 
   @override
   Widget build(BuildContext context) {

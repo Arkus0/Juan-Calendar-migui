@@ -11,13 +11,13 @@ class TaskFormScreen extends ConsumerStatefulWidget {
   final String? initialDescription;
 
   const TaskFormScreen({
-    Key? key,
+    super.key,
     this.tarea,
     this.initialDescription,
-  }) : super(key: key);
+  });
 
   @override
-  _TaskFormScreenState createState() => _TaskFormScreenState();
+  ConsumerState<TaskFormScreen> createState() => _TaskFormScreenState();
 }
 
 class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {

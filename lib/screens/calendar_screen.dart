@@ -8,20 +8,20 @@ import '../widgets/event_card.dart';
 import 'event_form_screen.dart';
 
 class CalendarScreen extends ConsumerWidget {
-  const CalendarScreen({Key? key}) : super(key: key);
+  const CalendarScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedDate = ref.watch(selectedDateProvider);
     final events = ref.watch(eventsProvider);
 
-    List<Evento> _getEventsForDay(DateTime day) {
+    List<Evento> getEventsForDay(DateTime day) {
       return events.where((event) {
         return isSameDay(event.inicio, day);
       }).toList();
     }
 
-    final dayEvents = _getEventsForDay(selectedDate);
+    final dayEvents = getEventsForDay(selectedDate);
 
     return Scaffold(
       body: Column(
@@ -33,7 +33,7 @@ class CalendarScreen extends ConsumerWidget {
             selectedDayPredicate: (day) => isSameDay(selectedDate, day),
             locale: 'es',
             calendarFormat: CalendarFormat.month,
-            eventLoader: _getEventsForDay,
+            eventLoader: getEventsForDay,
             startingDayOfWeek: StartingDayOfWeek.monday,
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,

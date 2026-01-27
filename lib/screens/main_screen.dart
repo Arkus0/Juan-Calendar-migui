@@ -11,10 +11,10 @@ import 'contacts_screen.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
@@ -48,7 +48,7 @@ class _MainScreenState extends State<MainScreen> {
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       _processSharedFiles(value);
     }, onError: (err) {
-      print("getIntentDataStream error: $err");
+      debugPrint("getIntentDataStream error: $err");
     });
 
     // Initial
@@ -96,6 +96,8 @@ class _MainScreenState extends State<MainScreen> {
       status = await Permission.microphone.request();
       if (!status.isGranted) return;
     }
+
+    if (!mounted) return;
 
     String recognizedText = "";
 

@@ -7,7 +7,7 @@ class EventCard extends StatelessWidget {
   final Evento evento;
   final VoidCallback? onTap;
 
-  const EventCard({Key? key, required this.evento, this.onTap}) : super(key: key);
+  const EventCard({super.key, required this.evento, this.onTap});
 
   Color _getColor(String tipo) {
     switch (tipo.toLowerCase()) {
@@ -67,7 +67,7 @@ class EventCard extends StatelessWidget {
                 child: Icon(
                   Icons.repeat,
                   size: 16,
-                  color: color.withOpacity(0.7),
+                  color: color.withAlpha((0.7 * 255).round()),
                 ),
               ),
             // 🔥 NUEVO: Indicador de notas
@@ -143,14 +143,14 @@ class EventCard extends StatelessWidget {
                     Icon(
                       Icons.repeat,
                       size: 14,
-                      color: color.withOpacity(0.7),
+                      color: color.withAlpha((0.7 * 255).round()),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       evento.recurrence!.getDisplayText(),
                       style: TextStyle(
                         fontSize: 11,
-                        color: color.withOpacity(0.7),
+                        color: color.withAlpha((0.7 * 255).round()),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
