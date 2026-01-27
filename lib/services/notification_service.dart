@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -15,6 +16,9 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+
+  // Callback para manejar la navegación desde notificaciones
+  Function(String?)? onNotificationTapCallback;
 
   /// Inicializa el servicio de notificaciones
   Future<void> initialize() async {
@@ -79,6 +83,15 @@ class NotificationService {
       playSound: true,
     );
 
+    const briefingChannel = AndroidNotificationChannel(
+      'briefing_channel',
+      'Briefing Matutino',
+      description: 'Notificación diaria para revisar tu agenda',
+      importance: Importance.high,
+      enableVibration: true,
+      playSound: true,
+    );
+
     await _notifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -93,13 +106,21 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(eventoChannel);
+
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(briefingChannel);
   }
 
   /// Maneja el tap en la notificación
   void _onNotificationTap(NotificationResponse response) {
-    // Aquí puedes navegar a la pantalla correspondiente
-    // basándote en response.payload
     debugPrint('Notificación tocada: ${response.payload}');
+
+    // Llamar al callback si está registrado
+    if (onNotificationTapCallback != null) {
+      onNotificationTapCallback!(response.payload);
+    }
   }
 
   /// Solicita permisos de notificación (principalmente para iOS)
@@ -409,5 +430,66 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
     );
+  }
+
+  /// Programa el Briefing Matutino diario
+  /// Se repite automáticamente cada día a la hora especificada
+  Future<void> scheduleDailyBriefing(TimeOfDay time) async {
+    if (!_initialized) await initialize();
+
+    // Cancelar el briefing anterior si existe
+    await cancelDailyBriefing();
+
+    // Crear fecha/hora para hoy a la hora especificada
+    final now = DateTime.now();
+    var scheduledDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // Si la hora ya pasó hoy, programar para mañana
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    final scheduledTZ = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    await _notifications.zonedSchedule(
+      99999, // ID único para el briefing matutino
+      '📅 Briefing Matutino',
+      '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
+      scheduledTZ,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'briefing_channel',
+          'Briefing Matutino',
+          channelDescription: 'Notificación diaria para revisar tu agenda',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time, // Repetir diariamente
+      payload: 'briefing_matutino',
+    );
+
+    debugPrint('✅ Briefing Matutino programado para las ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
+  }
+
+  /// Cancela el Briefing Matutino
+  Future<void> cancelDailyBriefing() async {
+    await _notifications.cancel(99999);
+    debugPrint('🔕 Briefing Matutino cancelado');
   }
 }

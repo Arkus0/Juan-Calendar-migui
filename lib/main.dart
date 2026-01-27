@@ -6,6 +6,9 @@ import 'services/notification_service.dart';
 import 'screens/main_screen.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 
+// GlobalKey para acceder al navegador desde cualquier lugar
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +24,19 @@ void main() async {
   await notificationService.initialize();
   await notificationService.requestPermissions();
 
+  // Configurar callback para manejar tap en notificaciones
+  notificationService.onNotificationTapCallback = (String? payload) {
+    if (payload == 'briefing_matutino') {
+      // Navegar a la AgendaScreen (índice 1)
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const MainScreen(initialIndex: 1),
+        ),
+        (route) => false,
+      );
+    }
+  };
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -32,6 +48,7 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(theme_provider.themeProvider);
 
     return MaterialApp(
+      navigatorKey: navigatorKey, // Registrar el GlobalKey
       title: 'Gestión de Calendario - Miguel Ángel Rosales',
       debugShowCheckedModeBanner: false,
       theme: theme_provider.lightTheme,

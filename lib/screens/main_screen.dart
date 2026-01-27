@@ -11,14 +11,16 @@ import 'contacts_screen.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late StreamSubscription _intentDataStreamSubscription;
   final VoiceService _voiceService = VoiceService();
   final OcrService _ocrService = OcrService();
@@ -33,6 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _initSharingListener();
   }
 
