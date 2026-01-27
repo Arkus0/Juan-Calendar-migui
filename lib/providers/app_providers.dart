@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../services/preferences_service.dart';
 import 'settings_provider.dart';
 
 enum AgendaViewMode { day, week, month }
 
 final agendaViewProvider = StateProvider<AgendaViewMode>((ref) => AgendaViewMode.day);
+
+// Calendar format provider for TableCalendar
+final calendarFormatProvider = StateProvider<CalendarFormat>((ref) => CalendarFormat.month);
 
 class SelectedDateNotifier extends StateNotifier<DateTime> {
   final PreferencesService _prefsService;

@@ -32,12 +32,12 @@ class CalendarScreen extends ConsumerWidget {
             focusedDay: selectedDate,
             selectedDayPredicate: (day) => isSameDay(selectedDate, day),
             locale: 'es',
-            calendarFormat: CalendarFormat.month,
             eventLoader: getEventsForDay,
             startingDayOfWeek: StartingDayOfWeek.monday,
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,
             ),
+            onFormatChanged: (format) => ref.read(calendarFormatProvider.notifier).state = format,
             onDaySelected: (selectedDay, focusedDay) {
               ref.read(selectedDateProvider.notifier).setDate(selectedDay);
             },
@@ -91,6 +91,7 @@ class CalendarScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'calendar_fab',
         onPressed: () {
           Navigator.push(
             context,

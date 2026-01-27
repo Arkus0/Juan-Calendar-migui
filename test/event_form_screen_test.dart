@@ -3,8 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:musician_organizer/screens/event_form_screen.dart';
 import 'package:musician_organizer/models/evento.dart';
+import 'package:musician_organizer/services/hive_service.dart';
 
 void main() {
+  setUpAll(() async {
+    // Ensure Hive boxes are initialized for tests
+    await HiveService().initialize();
+  });
+
   testWidgets('Delete button shows confirmation dialog', (WidgetTester tester) async {
     final event = Evento(
       id: 'test-id',

@@ -39,6 +39,7 @@ class ContactsScreen extends ConsumerWidget {
               },
             ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'contacts_fab',
         onPressed: () {
           Navigator.push(
             context,

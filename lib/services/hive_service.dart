@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/evento.dart';
 import '../models/tarea.dart';
@@ -19,7 +20,15 @@ class HiveService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await Hive.initFlutter();
+    // Try platform-aware init first (normal app). If it fails (tests without plugins),
+    // fallback to a filesystem temp init so tests can run headless.
+    try {
+      await Hive.initFlutter();
+    } catch (e) {
+      // MissingPluginException or other plugin-init errors
+      // Use system temp directory for tests or environments without path_provider
+      Hive.init(Directory.systemTemp.createTempSync().path);
+    }
 
     // Registrar adapters
     if (!Hive.isAdapterRegistered(0)) {

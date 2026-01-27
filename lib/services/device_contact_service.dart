@@ -1,13 +1,9 @@
-import 'package:contacts_service/contacts_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 class DeviceContactService {
   Future<bool> requestPermission() async {
-    var status = await Permission.contacts.status;
-    if (status.isDenied || status.isLimited) {
-      status = await Permission.contacts.request();
-    }
-    return status.isGranted;
+    return await FlutterContacts.requestPermission();
   }
 
   Future<void> saveContact({
@@ -19,11 +15,21 @@ class DeviceContactService {
       throw 'Permiso de contactos denegado';
     }
 
-    Contact newContact = Contact(
-      givenName: firstName,
-      phones: [Item(label: 'mobile', value: phone)],
-    );
+    final newContact = Contact()
+      ..name.first = firstName
+      ..phones = [Phone(phone)];
 
-    await ContactsService.addContact(newContact);
+    try {
+      await newContact.insert();
+    } catch (e) {
+      // Some devices/accounts can reject direct inserts (e.g., default cloud account).
+      // Fallback: open the native contact insert UI so the user can save manually.
+      debugPrint('Direct insert failed: $e — opening external insert UI as fallback');
+      try {
+        await FlutterContacts.openExternalInsert();
+      } catch (e2) {
+        throw 'Error al guardar en dispositivo: $e';
+      }
+    }
   }
 }

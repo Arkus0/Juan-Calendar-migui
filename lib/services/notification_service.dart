@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import '../models/evento.dart';
@@ -297,35 +298,73 @@ class NotificationService {
   }) async {
     final scheduledTZ = tz.TZDateTime.from(scheduledDate, tz.local);
 
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledTZ,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          channelId,
-          channelId == 'bolo_channel'
-              ? 'Bolos y Conciertos'
-              : channelId == 'tarea_channel'
-                  ? 'Tareas'
-                  : 'Eventos',
-          channelDescription: 'Recordatorios',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledTZ,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            channelId,
+            channelId == 'bolo_channel'
+                ? 'Bolos y Conciertos'
+                : channelId == 'tarea_channel'
+                    ? 'Tareas'
+                    : 'Eventos',
+            channelDescription: 'Recordatorios',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+    } on PlatformException catch (e) {
+      // Fallback: if exact alarms aren't permitted, schedule inexact to avoid crashing
+      if (e.code == 'exact_alarms_not_permitted') {
+        debugPrint('Exact alarms not permitted, scheduling inexact fallback for notification $id');
+        await _notifications.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledTZ,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              channelId,
+              channelId == 'bolo_channel'
+                  ? 'Bolos y Conciertos'
+                  : channelId == 'tarea_channel'
+                      ? 'Tareas'
+                      : 'Eventos',
+              channelDescription: 'Recordatorios',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexact,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// Cancela todas las notificaciones de un evento (incluyendo instancias recurrentes)
@@ -457,32 +496,66 @@ class NotificationService {
 
     final scheduledTZ = tz.TZDateTime.from(scheduledDate, tz.local);
 
-    await _notifications.zonedSchedule(
-      99999, // ID único para el briefing matutino
-      '📅 Briefing Matutino',
-      '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
-      scheduledTZ,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          'briefing_channel',
-          'Briefing Matutino',
-          channelDescription: 'Notificación diaria para revisar tu agenda',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    try {
+      await _notifications.zonedSchedule(
+        99999, // ID único para el briefing matutino
+        '📅 Briefing Matutino',
+        '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
+        scheduledTZ,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'briefing_channel',
+            'Briefing Matutino',
+            channelDescription: 'Notificación diaria para revisar tu agenda',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // Repetir diariamente
-      payload: 'briefing_matutino',
-    );
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time, // Repetir diariamente
+        payload: 'briefing_matutino',
+      );
+    } on PlatformException catch (e) {
+      if (e.code == 'exact_alarms_not_permitted') {
+        debugPrint('Exact alarms not permitted, scheduling inexact fallback for briefing');
+        await _notifications.zonedSchedule(
+          99999,
+          '📅 Briefing Matutino',
+          '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
+          scheduledTZ,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'briefing_channel',
+              'Briefing Matutino',
+              channelDescription: 'Notificación diaria para revisar tu agenda',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexact,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: 'briefing_matutino',
+        );
+      } else {
+        rethrow;
+      }
+    }
 
     debugPrint('✅ Briefing Matutino programado para las ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
   }

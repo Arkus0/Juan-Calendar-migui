@@ -12,23 +12,23 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # State management
-  flutter_riverpod: ^2.5.1
+  flutter_riverpod: ^2.6.1
 
   # UI Components
-  table_calendar: ^3.1.2
+  table_calendar: ^3.2.0
 
   # Internationalization
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # External integrations
   url_launcher: ^6.3.0
-  contacts_service: ^0.6.3
+  flutter_contacts: ^1.1.9+2
 
   # Permissions
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
 
   # Storage & Persistence
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.4.20
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.1.2
@@ -42,21 +42,21 @@ dependencies:
   receive_sharing_intent: ^1.8.1
 
   # Notifications
-  flutter_local_notifications: ^17.2.2
+  flutter_local_notifications: ^17.2.4
   timezone: ^0.9.4
 
   # Location
-  geolocator: ^12.0.0
+  geolocator: ^14.0.2
 
   # Haptics
-  vibration: ^2.0.0
+  vibration: ^3.1.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   hive_generator: ^2.0.1
-  build_runner: ^2.4.8
+  build_runner: ^2.4.13
 
 flutter:
   uses-material-design: true

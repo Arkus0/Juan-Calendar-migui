@@ -133,6 +133,7 @@ class AgendaScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'agenda_fab',
         onPressed: () {
           Navigator.push(
             context,

@@ -23,6 +23,16 @@ class MockPreferencesService implements PreferencesService {
   Future<void> saveDossierTemplate(String template) async {}
   @override
   Future<void> saveSelectedDate(DateTime date) async {}
+
+  // New briefing preference APIs (added in PreferencesService)
+  @override
+  Future<bool> getDailyBriefingEnabled() async => false;
+  @override
+  Future<TimeOfDay> getDailyBriefingTime() async => const TimeOfDay(hour: 8, minute: 0);
+  @override
+  Future<void> saveDailyBriefingTime(TimeOfDay time) async {}
+  @override
+  Future<void> setDailyBriefingEnabled(bool enabled) async {}
 }
 
 // Custom EventsNotifier to load test dataset
@@ -37,6 +47,8 @@ class TestEventsNotifier extends EventsNotifier {
 void main() {
   setUpAll(() async {
     await initializeDateFormatting();
+    // Initialize Hive for tests
+    await HiveService().initialize();
   });
 
   testWidgets('CalendarScreen renders events correctly', (WidgetTester tester) async {
