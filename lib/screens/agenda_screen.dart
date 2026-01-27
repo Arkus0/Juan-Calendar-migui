@@ -56,8 +56,9 @@ class AgendaScreen extends ConsumerWidget {
         filteredTasks.sort((a, b) => a.fecha.compareTo(b.fecha));
 
         Map<String, List<Tarea>> grouped = {};
+        final dateFormat = DateFormat('EEEE, d MMM', 'es'); // Need 'es' locale, but assuming default/system
         for (var t in filteredTasks) {
-          final dateStr = DateFormat('EEEE, d MMM', 'es').format(t.fecha); // Need 'es' locale, but assuming default/system
+          final dateStr = dateFormat.format(t.fecha);
           grouped.putIfAbsent(dateStr, () => []).add(t);
         }
 
@@ -83,9 +84,10 @@ class AgendaScreen extends ConsumerWidget {
         filteredTasks.sort((a, b) => a.fecha.compareTo(b.fecha));
 
         Map<String, List<Tarea>> grouped = {};
+        final dateFormat = DateFormat('d MMM');
         for (var t in filteredTasks) {
           final weekStart = getStartOfWeek(t.fecha);
-          final weekStr = "Semana del ${DateFormat('d MMM').format(weekStart)}";
+          final weekStr = "Semana del ${dateFormat.format(weekStart)}";
           grouped.putIfAbsent(weekStr, () => []).add(t);
         }
 
