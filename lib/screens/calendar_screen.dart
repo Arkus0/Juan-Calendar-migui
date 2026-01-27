@@ -37,7 +37,7 @@ class CalendarScreen extends ConsumerWidget {
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,
             ),
-            onFormatChanged: (format) => ref.read(calendarFormatProvider.notifier).state = format,
+            onFormatChanged: (format) => ref.read(calendarFormatProvider.notifier).setFormat(format),
             onDaySelected: (selectedDay, focusedDay) {
               ref.read(selectedDateProvider.notifier).setDate(selectedDay);
             },

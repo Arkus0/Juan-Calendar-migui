@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -45,7 +44,7 @@ class NotificationService {
     );
 
     await _notifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
@@ -124,7 +123,7 @@ class NotificationService {
     }
   }
 
-  /// Solicita permisos de notificación (principalmente para iOS)
+  /// Solicita permisos de notificación en iOS y métodos auxiliares para Android
   Future<bool> requestPermissions() async {
     final iosImplementation = _notifications.resolvePlatformSpecificImplementation<
         IOSFlutterLocalNotificationsPlugin>();
@@ -136,6 +135,22 @@ class NotificationService {
     );
 
     return granted ?? true; // Android no requiere solicitud explícita
+  }
+
+  /// Solicita permiso para mostrar notificaciones en Android 13+
+  Future<void> requestAndroidNotificationsPermission() async {
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+  }
+
+  /// Solicita permiso para usar alarmas exactas en Android 14 (si la app lo necesita)
+  Future<void> requestExactAlarmsPermission() async {
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestExactAlarmsPermission();
   }
 
   /// Programa notificaciones para un evento
@@ -300,11 +315,11 @@ class NotificationService {
 
     try {
       await _notifications.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledTZ,
-        NotificationDetails(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduledTZ,
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             channelId,
             channelId == 'bolo_channel'
@@ -324,8 +339,6 @@ class NotificationService {
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         payload: payload,
       );
     } on PlatformException catch (e) {
@@ -333,11 +346,11 @@ class NotificationService {
       if (e.code == 'exact_alarms_not_permitted') {
         debugPrint('Exact alarms not permitted, scheduling inexact fallback for notification $id');
         await _notifications.zonedSchedule(
-          id,
-          title,
-          body,
-          scheduledTZ,
-          NotificationDetails(
+          id: id,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTZ,
+          notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               channelId,
               channelId == 'bolo_channel'
@@ -357,8 +370,6 @@ class NotificationService {
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.inexact,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
           payload: payload,
         );
       } else {
@@ -379,7 +390,13 @@ class NotificationService {
           instanceIndex,
           reminderIndex,
         );
-        await _notifications.cancel(notificationId);
+        try {
+          await _notifications.cancel(id: notificationId);
+        } catch (e) {
+          // In tests or environments without a platform implementation this
+          // may fail; ignore to avoid crashing the app/tests.
+          debugPrint('Failed to cancel notification $notificationId: $e');
+        }
       }
     }
   }
@@ -395,7 +412,13 @@ class NotificationService {
           instanceIndex,
           reminderIndex,
         );
-        await _notifications.cancel(notificationId);
+        try {
+          await _notifications.cancel(id: notificationId);
+        } catch (e) {
+          // In tests or environments without a platform implementation this
+          // may fail; ignore to avoid crashing the app/tests.
+          debugPrint('Failed to cancel notification $notificationId: $e');
+        }
       }
     }
   }
@@ -456,10 +479,10 @@ class NotificationService {
     if (!_initialized) await initialize();
 
     await _notifications.show(
-      DateTime.now().millisecondsSinceEpoch % 2147483647,
-      title,
-      body,
-      const NotificationDetails(
+      id: DateTime.now().millisecondsSinceEpoch % 2147483647,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'evento_channel',
           'Eventos',
@@ -498,11 +521,11 @@ class NotificationService {
 
     try {
       await _notifications.zonedSchedule(
-        99999, // ID único para el briefing matutino
-        '📅 Briefing Matutino',
-        '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
-        scheduledTZ,
-        NotificationDetails(
+        id: 99999, // ID único para el briefing matutino
+        title: '📅 Briefing Matutino',
+        body: '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
+        scheduledDate: scheduledTZ,
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'briefing_channel',
             'Briefing Matutino',
@@ -518,8 +541,6 @@ class NotificationService {
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time, // Repetir diariamente
         payload: 'briefing_matutino',
       );
@@ -527,11 +548,11 @@ class NotificationService {
       if (e.code == 'exact_alarms_not_permitted') {
         debugPrint('Exact alarms not permitted, scheduling inexact fallback for briefing');
         await _notifications.zonedSchedule(
-          99999,
-          '📅 Briefing Matutino',
-          '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
-          scheduledTZ,
-          NotificationDetails(
+          id: 99999,
+          title: '📅 Briefing Matutino',
+          body: '¡Buenos días! Toca aquí para ver tus eventos y tareas de hoy.',
+          scheduledDate: scheduledTZ,
+          notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               'briefing_channel',
               'Briefing Matutino',
@@ -547,8 +568,6 @@ class NotificationService {
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.inexact,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
           payload: 'briefing_matutino',
         );
@@ -562,7 +581,11 @@ class NotificationService {
 
   /// Cancela el Briefing Matutino
   Future<void> cancelDailyBriefing() async {
-    await _notifications.cancel(99999);
+    try {
+      await _notifications.cancel(id: 99999);
+    } catch (e) {
+      debugPrint('Failed to cancel briefing notification: $e');
+    }
     debugPrint('🔕 Briefing Matutino cancelado');
   }
 }

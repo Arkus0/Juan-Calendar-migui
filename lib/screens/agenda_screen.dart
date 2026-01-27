@@ -117,7 +117,7 @@ class AgendaScreen extends ConsumerWidget {
               ],
               selected: {viewMode},
               onSelectionChanged: (Set<AgendaViewMode> newSelection) {
-                ref.read(agendaViewProvider.notifier).state = newSelection.first;
+                ref.read(agendaViewProvider.notifier).set(newSelection.first);
               },
             ),
           ),

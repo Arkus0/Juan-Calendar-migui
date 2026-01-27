@@ -8,7 +8,6 @@ import 'package:musician_organizer/providers/settings_provider.dart';
 import 'package:musician_organizer/screens/calendar_screen.dart';
 import 'package:musician_organizer/services/preferences_service.dart';
 import 'package:musician_organizer/services/hive_service.dart';
-import 'package:musician_organizer/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 final fixedDate = DateTime(2024, 6, 15);
@@ -37,10 +36,14 @@ class MockPreferencesService implements PreferencesService {
 
 // Custom EventsNotifier to load test dataset
 class TestEventsNotifier extends EventsNotifier {
-  final List<Evento> _initial;
-  TestEventsNotifier(this._initial)
-      : super(hiveService: HiveService(), notificationService: NotificationService(), loadOnInit: false) {
-    state = _initial;
+  @override
+  List<Evento> build() {
+    return [];
+  }
+
+  // Helper to set test data from the test override
+  void setInitial(List<Evento> initial) {
+    state = initial;
   }
 }
 
@@ -68,19 +71,26 @@ void main() {
 
     final mockPrefs = MockPreferencesService();
 
+    // Ensure Hive contains our test events
+    final hive = HiveService();
+    await hive.clearAll();
+    for (var e in testEvents) {
+      await hive.saveEvento(e);
+    }
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           // Override the service provider to inject our mock
           preferencesServiceProvider.overrideWithValue(mockPrefs),
-          // Override selectedDateProvider to ensure correct initial state
-          selectedDateProvider.overrideWith((ref) {
-            final notifier = SelectedDateNotifier(mockPrefs);
+          // Ensure SelectedDate has the correct initial state
+          selectedDateProvider.overrideWith(() {
+            final notifier = SelectedDateNotifier();
             notifier.state = fixedDate;
             return notifier;
           }),
-          // Override events
-          eventsProvider.overrideWith((ref) => TestEventsNotifier(testEvents)),
+          // Populate Hive with our test events so the real HiveService returns them
+          // (HiveService is a singleton used by the provider)
         ],
         child: const MaterialApp(
           home: CalendarScreen(),

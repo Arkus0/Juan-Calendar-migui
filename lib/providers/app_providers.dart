@@ -5,16 +5,32 @@ import 'settings_provider.dart';
 
 enum AgendaViewMode { day, week, month }
 
-final agendaViewProvider = StateProvider<AgendaViewMode>((ref) => AgendaViewMode.day);
+class AgendaViewNotifier extends Notifier<AgendaViewMode> {
+  @override
+  AgendaViewMode build() => AgendaViewMode.day;
+
+  void set(AgendaViewMode v) => state = v;
+}
+
+final agendaViewProvider = NotifierProvider<AgendaViewNotifier, AgendaViewMode>(AgendaViewNotifier.new);
 
 // Calendar format provider for TableCalendar
-final calendarFormatProvider = StateProvider<CalendarFormat>((ref) => CalendarFormat.month);
+class CalendarFormatNotifier extends Notifier<CalendarFormat> {
+  @override
+  CalendarFormat build() => CalendarFormat.month;
 
-class SelectedDateNotifier extends StateNotifier<DateTime> {
-  final PreferencesService _prefsService;
+  void setFormat(CalendarFormat f) => state = f;
+}
 
-  SelectedDateNotifier(this._prefsService) : super(DateTime.now()) {
+final calendarFormatProvider = NotifierProvider<CalendarFormatNotifier, CalendarFormat>(CalendarFormatNotifier.new);
+
+class SelectedDateNotifier extends Notifier<DateTime> {
+  PreferencesService get _prefsService => ref.read(preferencesServiceProvider);
+
+  @override
+  DateTime build() {
     _loadDate();
+    return DateTime.now();
   }
 
   Future<void> _loadDate() async {
@@ -30,7 +46,4 @@ class SelectedDateNotifier extends StateNotifier<DateTime> {
   }
 }
 
-final selectedDateProvider = StateNotifierProvider<SelectedDateNotifier, DateTime>((ref) {
-  final prefsService = ref.watch(preferencesServiceProvider);
-  return SelectedDateNotifier(prefsService);
-});
+final selectedDateProvider = NotifierProvider<SelectedDateNotifier, DateTime>(SelectedDateNotifier.new);

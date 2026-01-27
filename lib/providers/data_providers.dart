@@ -23,20 +23,17 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 // --- Eventos ---
 
 /// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
-class EventsNotifier extends StateNotifier<List<Evento>> {
-  final HiveService _hiveService;
-  final NotificationService _notificationService;
+class EventsNotifier extends Notifier<List<Evento>> {
+  HiveService get _hiveService => ref.read(hiveServiceProvider);
+  NotificationService get _notificationService => ref.read(notificationServiceProvider);
 
-  // Constructor con inyección de dependencias
-  EventsNotifier({
-    required HiveService hiveService,
-    required NotificationService notificationService,
-    bool loadOnInit = true,
-  })  : _hiveService = hiveService,
-        _notificationService = notificationService,
-        super([]) {
-    if (loadOnInit) _loadData();
+  @override
+  List<Evento> build() {
+    _loadData();
+    return [];
   }
+
+
 
   Future<void> _loadData() async {
     // Cargar eventos desde Hive
@@ -144,33 +141,19 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
 }
 
 /// 🔥 REFACTORIZADO: Provider con inyección de dependencias
-final eventsProvider = StateNotifierProvider<EventsNotifier, List<Evento>>((ref) {
-  // Obtener servicios del contenedor de Riverpod
-  final hiveService = ref.watch(hiveServiceProvider);
-  final notificationService = ref.watch(notificationServiceProvider);
-
-  // Crear el notifier con dependencias inyectadas
-  return EventsNotifier(
-    hiveService: hiveService,
-    notificationService: notificationService,
-  );
-});
+final eventsProvider = NotifierProvider<EventsNotifier, List<Evento>>(EventsNotifier.new);
 
 // --- Tareas ---
 
-/// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
-class TasksNotifier extends StateNotifier<List<Tarea>> {
-  final HiveService _hiveService;
-  final NotificationService _notificationService;
+/// 🔥 REFACTORIZADO: Ahora usa Notifier y obtiene dependencias vía ref
+class TasksNotifier extends Notifier<List<Tarea>> {
+  HiveService get _hiveService => ref.read(hiveServiceProvider);
+  NotificationService get _notificationService => ref.read(notificationServiceProvider);
 
-  // Constructor con inyección de dependencias
-  TasksNotifier({
-    required HiveService hiveService,
-    required NotificationService notificationService,
-  })  : _hiveService = hiveService,
-        _notificationService = notificationService,
-        super([]) {
+  @override
+  List<Tarea> build() {
     _loadData();
+    return [];
   }
 
   Future<void> _loadData() async {
@@ -281,30 +264,18 @@ class TasksNotifier extends StateNotifier<List<Tarea>> {
 }
 
 /// 🔥 REFACTORIZADO: Provider con inyección de dependencias
-final tasksProvider = StateNotifierProvider<TasksNotifier, List<Tarea>>((ref) {
-  // Obtener servicios del contenedor de Riverpod
-  final hiveService = ref.watch(hiveServiceProvider);
-  final notificationService = ref.watch(notificationServiceProvider);
-
-  // Crear el notifier con dependencias inyectadas
-  return TasksNotifier(
-    hiveService: hiveService,
-    notificationService: notificationService,
-  );
-});
+final tasksProvider = NotifierProvider<TasksNotifier, List<Tarea>>(TasksNotifier.new);
 
 // --- Contactos ---
 
-/// 🔥 REFACTORIZADO: Ahora usa inyección de dependencias
-class ContactsNotifier extends StateNotifier<List<Contacto>> {
-  final HiveService _hiveService;
+/// 🔥 REFACTORIZADO: Ahora usa Notifier y obtiene dependencias vía ref
+class ContactsNotifier extends Notifier<List<Contacto>> {
+  HiveService get _hiveService => ref.read(hiveServiceProvider);
 
-  // Constructor con inyección de dependencias
-  ContactsNotifier({
-    required HiveService hiveService,
-  })  : _hiveService = hiveService,
-        super([]) {
+  @override
+  List<Contacto> build() {
     _loadData();
+    return [];
   }
 
   Future<void> _loadData() async {
@@ -379,12 +350,4 @@ class ContactsNotifier extends StateNotifier<List<Contacto>> {
 }
 
 /// 🔥 REFACTORIZADO: Provider con inyección de dependencias
-final contactsProvider = StateNotifierProvider<ContactsNotifier, List<Contacto>>((ref) {
-  // Obtener servicio del contenedor de Riverpod
-  final hiveService = ref.watch(hiveServiceProvider);
-
-  // Crear el notifier con dependencia inyectada
-  return ContactsNotifier(
-    hiveService: hiveService,
-  );
-});
+final contactsProvider = NotifierProvider<ContactsNotifier, List<Contacto>>(ContactsNotifier.new);

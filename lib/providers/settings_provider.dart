@@ -17,15 +17,17 @@ Aquí te envío mi dossier actualizado como cantautor:
 Un saludo,
 Juan José Moreno""";
 
-class DossierTemplateNotifier extends StateNotifier<String> {
-  final PreferencesService _prefsService;
-
-  DossierTemplateNotifier(this._prefsService) : super(defaultDossierTemplate) {
+class DossierTemplateNotifier extends Notifier<String> {
+  @override
+  String build() {
+    // Start with default and load persisted value asynchronously.
     _loadTemplate();
+    return defaultDossierTemplate;
   }
 
   Future<void> _loadTemplate() async {
-    final saved = await _prefsService.getDossierTemplate();
+    final prefs = ref.read(preferencesServiceProvider);
+    final saved = await prefs.getDossierTemplate();
     if (saved != null) {
       state = saved;
     }
@@ -33,11 +35,9 @@ class DossierTemplateNotifier extends StateNotifier<String> {
 
   Future<void> updateTemplate(String newTemplate) async {
     state = newTemplate;
-    await _prefsService.saveDossierTemplate(newTemplate);
+    final prefs = ref.read(preferencesServiceProvider);
+    await prefs.saveDossierTemplate(newTemplate);
   }
 }
 
-final dossierTemplateProvider = StateNotifierProvider<DossierTemplateNotifier, String>((ref) {
-  final prefsService = ref.watch(preferencesServiceProvider);
-  return DossierTemplateNotifier(prefsService);
-});
+final dossierTemplateProvider = NotifierProvider<DossierTemplateNotifier, String>(DossierTemplateNotifier.new);

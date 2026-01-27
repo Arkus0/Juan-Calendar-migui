@@ -162,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Musician Organizer'),
+        title: const Text('Juan Calendar'),
         actions: [
           IconButton(
             icon: const Icon(Icons.mic),

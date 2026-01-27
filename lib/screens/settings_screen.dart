@@ -186,8 +186,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(context)
                                     .colorScheme
-                                    .surfaceVariant
-                                    .withOpacity(0.3),
+                                    .surfaceContainerHighest
+                                    .withAlpha((0.3 * 255).round()),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(

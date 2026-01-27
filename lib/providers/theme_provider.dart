@@ -4,12 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum ThemeMode { light, dark, system }
 
-class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.system) {
-    _loadTheme();
-  }
-
+class ThemeNotifier extends Notifier<ThemeMode> {
   static const String _themeKey = 'theme_mode';
+
+  @override
+  ThemeMode build() {
+    // Start with system and load persisted value asynchronously.
+    _loadTheme();
+    return ThemeMode.system;
+  }
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,9 +27,7 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   }
 }
 
-final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
-  return ThemeNotifier();
-});
+final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.new);
 
 /// Tema claro Material 3 profesional
 final lightTheme = ThemeData(
