@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 class DeviceContactService {
@@ -15,20 +16,29 @@ class DeviceContactService {
       throw 'Permiso de contactos denegado';
     }
 
-    final newContact = Contact()
-      ..name.first = firstName
-      ..phones = [Phone(phone)];
-
+    // Try to prefill the native contact insert UI on Android using intents.
+    // Fallback to FlutterContacts.openExternalInsert() otherwise.
     try {
-      await newContact.insert();
+      if (Platform.isAndroid) {
+        final cleanedPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+        final intent = AndroidIntent(
+          action: 'android.intent.action.INSERT',
+          type: 'vnd.android.cursor.item/contact',
+          arguments: {
+            'name': firstName,
+            'phone': cleanedPhone,
+          },
+        );
+        await intent.launch();
+      } else {
+        await FlutterContacts.openExternalInsert();
+      }
     } catch (e) {
-      // Some devices/accounts can reject direct inserts (e.g., default cloud account).
-      // Fallback: open the native contact insert UI so the user can save manually.
-      debugPrint('Direct insert failed: $e — opening external insert UI as fallback');
+      // Last resort: open external insert UI (no prefill)
       try {
         await FlutterContacts.openExternalInsert();
       } catch (e2) {
-        throw 'Error al guardar en dispositivo: $e';
+        throw 'Error al abrir la UI de inserción de contactos: $e2';
       }
     }
   }

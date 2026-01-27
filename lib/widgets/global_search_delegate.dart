@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/evento.dart';
-import '../models/tarea.dart';
 import '../models/contacto.dart';
 import '../services/hive_service.dart';
 import '../screens/event_form_screen.dart';
@@ -96,7 +95,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
 
     final results = _hiveService.searchAll(query);
     final eventos = results['eventos'] as List<Evento>;
-    final tareas = results['tareas'] as List<Tarea>;
+    final tareas = (results['tareas'] as List).cast<Evento>();
     final contactos = results['contactos'] as List<Contacto>;
 
     final totalResults = eventos.length + tareas.length + contactos.length;
@@ -227,7 +226,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
     );
   }
 
-  Widget _buildTareaTile(BuildContext context, Tarea tarea) {
+  Widget _buildTareaTile(BuildContext context, Evento tarea) {
     final dateFormat = DateFormat('dd MMM yyyy', 'es_ES');
 
     return ListTile(
@@ -241,7 +240,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
         ),
       ),
       title: Text(
-        tarea.descripcion,
+        tarea.titulo,
         style: TextStyle(
           fontWeight: FontWeight.bold,
           decoration: tarea.completada ? TextDecoration.lineThrough : null,
@@ -250,7 +249,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(dateFormat.format(tarea.fecha)),
+          Text(dateFormat.format(tarea.inicio)),
           if (tarea.categoria != null)
             Text(
               tarea.categoria!,

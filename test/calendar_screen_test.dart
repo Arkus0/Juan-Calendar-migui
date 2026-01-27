@@ -8,6 +8,7 @@ import 'package:musician_organizer/providers/settings_provider.dart';
 import 'package:musician_organizer/screens/calendar_screen.dart';
 import 'package:musician_organizer/services/preferences_service.dart';
 import 'package:musician_organizer/services/hive_service.dart';
+import 'package:musician_organizer/models/event_type.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 final fixedDate = DateTime(2024, 6, 15);
@@ -32,6 +33,12 @@ class MockPreferencesService implements PreferencesService {
   Future<void> saveDailyBriefingTime(TimeOfDay time) async {}
   @override
   Future<void> setDailyBriefingEnabled(bool enabled) async {}
+
+  // Dossier attachments (mock)
+  @override
+  Future<void> saveDossierFiles(List<String> files) async {}
+  @override
+  Future<List<String>> getDossierFiles() async => <String>[];
 }
 
 // Custom EventsNotifier to load test dataset
@@ -63,7 +70,7 @@ void main() {
       return Evento(
         id: 'event_$index',
         titulo: 'Event $index',
-        tipo: 'bolo',
+        tipo: EventType.bolo,
         inicio: fixedDate,
         lugar: 'Location $index',
       );

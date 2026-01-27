@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
 import '../services/preferences_service.dart';
 import '../services/notification_service.dart';
+import 'package:file_selector/file_selector.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -42,6 +46,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<String?> _ensureFilePath(XFile f) async {
+    try {
+      final maybePath = f.path;
+      if (maybePath.isNotEmpty) return maybePath;
+    } catch (_) {}
+
+    try {
+      final bytes = await f.readAsBytes();
+      final dir = await getApplicationDocumentsDirectory();
+      final name = f.name.replaceAll(RegExp(r"[^0-9A-Za-z._-]"), '_');
+      final file = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
+      await file.writeAsBytes(bytes);
+      return file.path;
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> _toggleBriefing(bool value) async {
@@ -111,12 +133,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: () {
-              ref.read(dossierTemplateProvider.notifier).updateTemplate(_controller.text);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Plantilla guardada')),
-              );
-              Navigator.pop(context);
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              try {
+                await ref.read(dossierTemplateProvider.notifier).updateTemplate(_controller.text);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Plantilla guardada')),
+                  );
+                  navigator.pop();
+                }
+              } catch (e) {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Error al guardar plantilla: $e')),
+                  );
+                }
+              }
             },
           )
         ],
@@ -159,7 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Recibe un recordatorio diario para revisar tu agenda',
+                                    'Recibe un recordatorio diario para revisar tus tareas',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
@@ -214,6 +248,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 32),
+
+                // Sección de Adjuntos del Dossier
+                const Text(
+                  'Adjuntos del Dossier',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.attach_file),
+                          label: const Text('Añadir PDFs'),
+                          onPressed: () async {
+                            String? snackBarMessage;
+                            try {
+                              final files = await openFiles(
+                                acceptedTypeGroups: [
+                                  XTypeGroup(extensions: ['pdf'], label: 'PDF')
+                                ],
+                              );
+                              if (files.isNotEmpty) {
+                                final List<String> paths = [];
+                                for (final f in files) {
+                                  final p = await _ensureFilePath(f);
+                                  if (p != null && p.isNotEmpty) paths.add(p);
+                                }
+                                if (paths.isNotEmpty) {
+                                  final current = await _prefsService.getDossierFiles();
+                                  final merged = {...current, ...paths}.toList();
+                                  await _prefsService.saveDossierFiles(merged);
+                                  // refresh UI
+                                  setState(() {
+                                    snackBarMessage = 'PDF(s) añadidos';
+                                  });
+                                } else {
+                                  setState(() {
+                                    snackBarMessage = 'No se pudo acceder a los archivos seleccionados';
+                                  });
+                                }
+                              }
+                            } on MissingPluginException catch (_) {
+                              setState(() {
+                                snackBarMessage = 'Función no soportada en esta plataforma (MissingPluginException).';
+                              });
+                            } catch (e) {
+                              setState(() {
+                                snackBarMessage = 'Error al añadir PDF: $e';
+                              });
+                            }
+                            if (snackBarMessage != null && mounted) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(snackBarMessage!)));
+                                }
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        FutureBuilder<List<String>>(
+                          future: _prefsService.getDossierFiles(),
+                          builder: (context, snap) {
+                            final files = snap.data ?? [];
+                            if (files.isEmpty) return const Text('No hay PDFs añadidos.');
+                            return Column(
+                              children: files.map((p) {
+                                final name = p.split(RegExp(r'[\\\\/]')).last;
+                                return ListTile(
+                                  title: Text(name),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: () async {
+                                      String? snackBarMessage;
+                                      final current = await _prefsService.getDossierFiles();
+                                      final updated = current.where((x) => x != p).toList();
+                                      await _prefsService.saveDossierFiles(updated);
+                                      setState(() {
+                                        snackBarMessage = 'Adjunto eliminado';
+                                      });
+                                      if (snackBarMessage != null && mounted) {
+                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(snackBarMessage!)));
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 32),
 
                 // Sección de Plantilla del Dossier

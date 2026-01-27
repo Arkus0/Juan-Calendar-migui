@@ -18,6 +18,19 @@ class PreferencesService {
     return prefs.getString(_templateKey);
   }
 
+  // Attachments for dossier (list of file paths)
+  static const String _dossierFilesKey = 'dossier_files';
+
+  Future<void> saveDossierFiles(List<String> files) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_dossierFilesKey, files);
+  }
+
+  Future<List<String>> getDossierFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_dossierFilesKey) ?? <String>[];
+  }
+
   Future<void> saveSelectedDate(DateTime date) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_selectedDateKey, date.toIso8601String());

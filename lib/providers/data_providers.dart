@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/evento.dart';
-import '../models/tarea.dart';
+import '../models/event_type.dart';
 import '../models/contacto.dart';
 import '../models/recurrence_rule.dart';
 import '../services/hive_service.dart';
@@ -53,7 +53,7 @@ class EventsNotifier extends Notifier<List<Evento>> {
       Evento(
         id: _uuid.v4(),
         titulo: 'Concierto en Sala X',
-        tipo: 'bolo',
+        tipo: EventType.bolo,
         inicio: now.add(const Duration(days: 2, hours: 20)),
         fin: now.add(const Duration(days: 2, hours: 23)),
         lugar: 'Sala X, Sevilla',
@@ -66,7 +66,7 @@ class EventsNotifier extends Notifier<List<Evento>> {
       Evento(
         id: _uuid.v4(),
         titulo: 'Reunión con Manager',
-        tipo: 'reunion',
+        tipo: EventType.reunion,
         inicio: now.add(const Duration(days: 1, hours: 10)),
         fin: now.add(const Duration(days: 1, hours: 12)),
         lugar: 'Cafetería Central, Calle Sierpes 15, Sevilla',
@@ -76,7 +76,7 @@ class EventsNotifier extends Notifier<List<Evento>> {
       Evento(
         id: _uuid.v4(),
         titulo: 'Cena familiar',
-        tipo: 'personal',
+        tipo: EventType.personal,
         inicio: now.add(const Duration(days: 5, hours: 21)),
         notas: 'Cumpleaños de mamá. Llevar el regalo.',
         reminders: [60], // 1 hora antes
@@ -84,7 +84,7 @@ class EventsNotifier extends Notifier<List<Evento>> {
       Evento(
         id: _uuid.v4(),
         titulo: 'Festival Indie Andaluz',
-        tipo: 'bolo',
+        tipo: EventType.bolo,
         inicio: now.add(const Duration(days: 15, hours: 18)),
         fin: now.add(const Duration(days: 15, hours: 20)),
         lugar: 'Recinto Ferial, Dos Hermanas',
@@ -95,7 +95,7 @@ class EventsNotifier extends Notifier<List<Evento>> {
       Evento(
         id: _uuid.v4(),
         titulo: 'Ensayo semanal',
-        tipo: 'personal',
+        tipo: EventType.personal,
         inicio: now.add(const Duration(days: 3, hours: 19)),
         fin: now.add(const Duration(days: 3, hours: 22)),
         lugar: 'Local de ensayo, Triana',
@@ -146,22 +146,40 @@ final eventsProvider = NotifierProvider<EventsNotifier, List<Evento>>(EventsNoti
 // --- Tareas ---
 
 /// 🔥 REFACTORIZADO: Ahora usa Notifier y obtiene dependencias vía ref
-class TasksNotifier extends Notifier<List<Tarea>> {
+class TasksNotifier extends Notifier<List<Evento>> {
+    /// Persiste el nuevo orden de tareas (backlog sin fecha)
+    Future<void> reorderTareas(int oldIndex, int newIndex) async {
+      // Solo tareas sin fecha (backlog)
+      final tareas = _hiveService.getAllTareas();
+      if (oldIndex < newIndex) {
+        newIndex -= 1;
+      }
+      final tarea = tareas.removeAt(oldIndex);
+      tareas.insert(newIndex, tarea);
+      // Opcional: guardar el orden en Hive añadiendo un campo 'orden' a Evento
+      // Por ahora, reescribimos todas las tareas en el nuevo orden
+      for (var i = 0; i < tareas.length; i++) {
+        final t = tareas[i];
+        final updated = t.copyWith(); // Si añades campo 'orden', pon orden: i
+        await _hiveService.saveEvento(updated);
+      }
+      state = _hiveService.getAllTareas();
+    }
   HiveService get _hiveService => ref.read(hiveServiceProvider);
   NotificationService get _notificationService => ref.read(notificationServiceProvider);
 
   @override
-  List<Tarea> build() {
+  List<Evento> build() {
     _loadData();
     return [];
   }
 
   Future<void> _loadData() async {
-    // Cargar tareas desde Hive
+    // Cargar tareas (ahora eventos marcados como tareas)
     final tareas = _hiveService.getAllTareas();
 
     if (tareas.isEmpty) {
-      // Si no hay tareas, cargar datos de ejemplo
+      // Si no hay tareas, cargar datos de ejemplo como eventos tipo 'personal'
       await _loadDummyData();
     } else {
       state = tareas;
@@ -171,60 +189,75 @@ class TasksNotifier extends Notifier<List<Tarea>> {
   Future<void> _loadDummyData() async {
     final now = DateTime.now();
     final dummyTareas = [
-      Tarea(
+      Evento(
         id: _uuid.v4(),
-        descripcion: 'Llamar al promotor del festival',
-        fecha: now,
+        titulo: 'Llamar al promotor del festival',
+        tipo: EventType.personal,
+        inicio: now,
         categoria: 'Gestión',
-        hora: DateTime(now.year, now.month, now.day, 11, 0),
         reminders: [30, 120], // 30 min y 2 horas antes
+        isTask: true,
       ),
-      Tarea(
+      Evento(
         id: _uuid.v4(),
-        descripcion: 'Publicar reel en Instagram',
-        fecha: now,
+        titulo: 'Publicar reel en Instagram',
+        tipo: EventType.personal,
+        inicio: now,
         categoria: 'Marketing',
         reminders: [60], // 1 hora antes
+        isTask: true,
       ),
-      Tarea(
+      Evento(
         id: _uuid.v4(),
-        descripcion: 'Comprar cuerdas nuevas',
-        fecha: now.add(const Duration(days: 1)),
+        titulo: 'Comprar cuerdas nuevas',
+        tipo: EventType.personal,
+        inicio: now.add(const Duration(days: 1)),
         categoria: 'Equipo',
         reminders: [1440], // 1 día antes
+        isTask: true,
       ),
-      Tarea(
+      Evento(
         id: _uuid.v4(),
-        descripcion: 'Revisar contrato discográfica',
-        fecha: now.add(const Duration(days: 3)),
+        titulo: 'Revisar contrato discográfica',
+        tipo: EventType.personal,
+        inicio: now.add(const Duration(days: 3)),
         categoria: 'Legal',
         reminders: [60, 2880], // 1 hora y 2 días antes
+        isTask: true,
       ),
-      Tarea(
+      Evento(
         id: _uuid.v4(),
-        descripcion: 'Mantenimiento guitarra',
-        fecha: now.add(const Duration(days: 7)),
-        categoria: 'Equipo',
+        titulo: 'Mantenimiento guitarra',
+        tipo: EventType.personal,
+        inicio: now.add(const Duration(days: 7)),
+        categoria: null,
         recurrence: RecurrenceRule(
           type: RecurrenceType.monthly,
           interval: 1,
           count: 6, // 6 meses
         ),
         reminders: [1440], // 1 día antes
+        isTask: true,
       ),
     ];
 
     for (var tarea in dummyTareas) {
-      await _hiveService.saveTarea(tarea);
-      await _notificationService.scheduleTaskNotifications(tarea);
+      await _hiveService.saveEvento(tarea);
+      // Programar notificaciones solo si la tarea tiene fecha
+      if (tarea.hasDate) {
+        await _notificationService.scheduleTaskNotifications(tarea);
+      }
     }
 
     state = _hiveService.getAllTareas();
   }
 
-  Future<void> addTarea(Tarea tarea) async {
-    await _hiveService.saveTarea(tarea);
-    await _notificationService.scheduleTaskNotifications(tarea);
+  Future<void> addTarea(Evento tarea) async {
+    // Debe venir con isTask = true
+    await _hiveService.saveEvento(tarea);
+    if (tarea.hasDate) {
+      await _notificationService.scheduleTaskNotifications(tarea);
+    }
     state = _hiveService.getAllTareas();
   }
 
@@ -232,23 +265,29 @@ class TasksNotifier extends Notifier<List<Tarea>> {
     final tarea = _hiveService.getTarea(id);
     if (tarea != null) {
       final updated = tarea.copyWith(completada: !tarea.completada);
-      await _hiveService.saveTarea(updated);
+      await _hiveService.saveEvento(updated);
 
       // Si se completa, cancelar notificaciones
       if (updated.completada) {
         await _notificationService.cancelTaskNotifications(id);
       } else {
-        // Si se marca como no completada, reprogramar notificaciones
-        await _notificationService.scheduleTaskNotifications(updated);
+        // Si se marca como no completada y tiene fecha, reprogramar notificaciones
+        if (updated.hasDate) {
+          await _notificationService.scheduleTaskNotifications(updated);
+        }
       }
 
       state = _hiveService.getAllTareas();
     }
   }
 
-  Future<void> updateTarea(Tarea tarea) async {
-    await _hiveService.saveTarea(tarea);
-    await _notificationService.scheduleTaskNotifications(tarea);
+  Future<void> updateTarea(Evento tarea) async {
+    await _hiveService.saveEvento(tarea);
+    if (tarea.hasDate) {
+      await _notificationService.scheduleTaskNotifications(tarea);
+    } else {
+      await _notificationService.cancelTaskNotifications(tarea.id);
+    }
     state = _hiveService.getAllTareas();
   }
 
@@ -264,7 +303,7 @@ class TasksNotifier extends Notifier<List<Tarea>> {
 }
 
 /// 🔥 REFACTORIZADO: Provider con inyección de dependencias
-final tasksProvider = NotifierProvider<TasksNotifier, List<Tarea>>(TasksNotifier.new);
+final tasksProvider = NotifierProvider<TasksNotifier, List<Evento>>(TasksNotifier.new);
 
 // --- Contactos ---
 

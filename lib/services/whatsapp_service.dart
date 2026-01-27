@@ -1,34 +1,56 @@
-import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+
 
 class WhatsAppService {
+  /// If [pdfPath] is provided we share the file (Share.shareFiles) so the user can
+  /// choose WhatsApp with the PDF attached. Otherwise try to open WhatsApp directly
+  /// with the text message via URI schemes.
   Future<void> sendDossier({
     required String phone,
     required String message,
+    List<String>? pdfPaths,
   }) async {
+    // If PDF paths provided, try to share them
+    if (pdfPaths != null && pdfPaths.isNotEmpty) {
+      try {
+        final xfiles = pdfPaths.where((p) => p.isNotEmpty).map((p) => XFile(p)).toList();
+        if (xfiles.isNotEmpty) {
+          await SharePlus.instance.share(ShareParams(text: message, files: xfiles));
+          return;
+        }
+      } catch (e) {
+        // fallback to text-only behavior
+      }
+    }
+
     // Clean phone number (remove spaces, etc, but keep +)
-    // Assuming input is something like +34666555444 or 666555444
     String cleanPhone = phone.replaceAll(RegExp(r'\s+'), '');
 
     // Encode message
     String encodedMessage = Uri.encodeComponent(message);
 
-    // Create URL
-    // Different schemes for Android/iOS might be needed sometimes, but usually https://wa.me works universally if the app is installed.
-    // However, url_launcher recommends specific schemes.
+    // Try whatsapp custom scheme first (works if WhatsApp is installed), fallback to wa.me
+    final phoneForIntent = cleanPhone.replaceAll('+', '');
+    final uriWhatsappScheme = Uri.parse('whatsapp://send?phone=$phoneForIntent&text=$encodedMessage');
+    final uriWaMe = Uri.parse('https://wa.me/$phoneForIntent?text=$encodedMessage');
 
-    Uri url;
-    if (Platform.isAndroid) {
-       url = Uri.parse("https://wa.me/$cleanPhone?text=$encodedMessage");
-    } else {
-       // iOS usually handles wa.me too, or whatsapp://send
-       url = Uri.parse("https://wa.me/$cleanPhone?text=$encodedMessage");
+    if (await canLaunchUrl(uriWhatsappScheme)) {
+      await launchUrl(uriWhatsappScheme, mode: LaunchMode.externalApplication);
+      return;
     }
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'No se pudo abrir WhatsApp ($url)';
+    if (await canLaunchUrl(uriWaMe)) {
+      await launchUrl(uriWaMe, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    // Last resort: share text via system share sheet
+    try {
+      await SharePlus.instance.share(ShareParams(text: message));
+      return;
+    } catch (e) {
+      throw 'No se pudo abrir WhatsApp ni compartir (tried $uriWhatsappScheme, $uriWaMe)';
     }
   }
 }

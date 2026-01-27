@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:hive_flutter_io/hive_flutter_io.dart';
 import '../models/evento.dart';
-import '../models/tarea.dart';
+import '../models/event_type.dart';
 import '../models/contacto.dart';
 import '../models/recurrence_rule.dart';
 
@@ -11,6 +11,7 @@ class HiveService {
   HiveService._internal();
 
   static const String eventosBox = 'eventos';
+  // Deprecated: tasks are migrated into eventos box. Kept for migration step only.
   static const String tareasBox = 'tareas';
   static const String contactosBox = 'contactos';
 
@@ -34,8 +35,9 @@ class HiveService {
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(EventoAdapter());
     }
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(TareaAdapter());
+    // EventType adapter (nuevo)
+    if (!Hive.isAdapterRegistered(5)) {
+      Hive.registerAdapter(EventTypeAdapter());
     }
     if (!Hive.isAdapterRegistered(2)) {
       Hive.registerAdapter(ContactoAdapter());
@@ -49,17 +51,22 @@ class HiveService {
 
     // Abrir boxes
     await Hive.openBox<Evento>(eventosBox);
-    await Hive.openBox<Tarea>(tareasBox);
     await Hive.openBox<Contacto>(contactosBox);
+
+    // Si existe una caja antigua de 'tareas' en disco, eliminarla (retiramos el modelo Tarea)
+    if (await Hive.boxExists(tareasBox)) {
+      try {
+        await Hive.deleteBoxFromDisk(tareasBox);
+      } catch (_) {
+        // No bloquear inicialización si falla
+      }
+    }
 
     _initialized = true;
   }
 
   /// Obtiene la caja de eventos
   Box<Evento> get eventosBoxInstance => Hive.box<Evento>(eventosBox);
-
-  /// Obtiene la caja de tareas
-  Box<Tarea> get tareasBoxInstance => Hive.box<Tarea>(tareasBox);
 
   /// Obtiene la caja de contactos
   Box<Contacto> get contactosBoxInstance => Hive.box<Contacto>(contactosBox);
@@ -109,63 +116,50 @@ class HiveService {
 
   // ======== TAREAS ========
 
-  /// Guarda o actualiza una tarea
-  Future<void> saveTarea(Tarea tarea) async {
-    await tareasBoxInstance.put(tarea.id, tarea);
-  }
-
   /// Obtiene todas las tareas (incluyendo instancias recurrentes generadas)
-  List<Tarea> getAllTareas() {
-    final tareas = tareasBoxInstance.values.toList();
-    final allInstances = <Tarea>[];
-
-    for (var tarea in tareas) {
-      // Solo procesar tareas padre (no instancias)
-      if (!tarea.isRecurringInstance) {
-        final instances = tarea.generateRecurringInstances();
-        allInstances.addAll(instances);
-      }
-    }
-
-    return allInstances;
+  /// Ahora devuelve Eventos marcados como tareas (usa la caja `eventos`)
+  List<Evento> getAllTareas() {
+    final allEventos = getAllEventos();
+    // Solo tareas sin fecha (hasDate == false)
+    return allEventos.where((e) => e.isTask && !e.hasDate).toList();
   }
 
-  /// Obtiene una tarea por ID
-  Tarea? getTarea(String id) {
-    return tareasBoxInstance.get(id);
+  /// Obtiene una tarea por ID (busca en eventos)
+  Evento? getTarea(String id) {
+    return eventosBoxInstance.get(id);
   }
 
-  /// Elimina una tarea
+  /// Elimina una tarea (delegado a eventos)
   Future<void> deleteTarea(String id) async {
-    await tareasBoxInstance.delete(id);
+    await eventosBoxInstance.delete(id);
   }
 
   /// Obtiene tareas de un día específico
-  List<Tarea> getTareasForDate(DateTime date) {
+  List<Evento> getTareasForDate(DateTime date) {
     final allTareas = getAllTareas();
     return allTareas.where((tarea) {
-      return tarea.fecha.year == date.year &&
-          tarea.fecha.month == date.month &&
-          tarea.fecha.day == date.day;
+      return tarea.inicio.year == date.year &&
+          tarea.inicio.month == date.month &&
+          tarea.inicio.day == date.day;
     }).toList();
   }
 
   /// Obtiene tareas de una semana específica
-  List<Tarea> getTareasForWeek(DateTime startOfWeek) {
+  List<Evento> getTareasForWeek(DateTime startOfWeek) {
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
     final allTareas = getAllTareas();
 
     return allTareas.where((tarea) {
-      return tarea.fecha.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-          tarea.fecha.isBefore(endOfWeek);
+      return tarea.inicio.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+          tarea.inicio.isBefore(endOfWeek);
     }).toList();
   }
 
   /// Obtiene tareas de un mes específico
-  List<Tarea> getTareasForMonth(DateTime month) {
+  List<Evento> getTareasForMonth(DateTime month) {
     final allTareas = getAllTareas();
     return allTareas.where((tarea) {
-      return tarea.fecha.year == month.year && tarea.fecha.month == month.month;
+      return tarea.inicio.year == month.year && tarea.inicio.month == month.month;
     }).toList();
   }
 
@@ -196,7 +190,12 @@ class HiveService {
   /// Limpia todas las cajas (útil para reset)
   Future<void> clearAll() async {
     await eventosBoxInstance.clear();
-    await tareasBoxInstance.clear();
+    // Si existe una caja antigua de tareas en disco, eliminarla totalmente
+    if (await Hive.boxExists(tareasBox)) {
+      try {
+        await Hive.deleteBoxFromDisk(tareasBox);
+      } catch (_) {}
+    }
     await contactosBoxInstance.clear();
   }
 
@@ -205,6 +204,8 @@ class HiveService {
     await Hive.close();
     _initialized = false;
   }
+
+
 
   /// Búsqueda global en eventos, tareas y contactos
   Map<String, List<dynamic>> searchAll(String query) {
@@ -217,7 +218,7 @@ class HiveService {
     }).toList();
 
     final tareas = getAllTareas().where((tarea) {
-      return tarea.descripcion.toLowerCase().contains(lowercaseQuery) ||
+      return tarea.titulo.toLowerCase().contains(lowercaseQuery) ||
           (tarea.categoria?.toLowerCase().contains(lowercaseQuery) ?? false);
     }).toList();
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/evento.dart';
+import '../models/event_type.dart';
 import '../models/recurrence_rule.dart';
 
 class EventCard extends StatelessWidget {
@@ -9,16 +10,18 @@ class EventCard extends StatelessWidget {
 
   const EventCard({super.key, required this.evento, this.onTap});
 
-  Color _getColor(String tipo) {
-    switch (tipo.toLowerCase()) {
-      case 'bolo':
+  Color _getColor(EventType tipo) {
+    switch (tipo) {
+      case EventType.bolo:
         return Colors.redAccent;
-      case 'reunion':
+      case EventType.reunion:
         return Colors.blueAccent;
-      case 'personal':
+      case EventType.personal:
         return Colors.green;
-      default:
-        return Colors.grey;
+      case EventType.clases:
+        return Colors.purple;
+      case EventType.laboral:
+        return Colors.orange;
     }
   }
 
@@ -164,7 +167,7 @@ class EventCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              evento.tipo.toUpperCase(),
+              evento.tipo.displayName.toUpperCase(),
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,

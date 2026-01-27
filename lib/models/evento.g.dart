@@ -19,7 +19,9 @@ class EventoAdapter extends TypeAdapter<Evento> {
     return Evento(
       id: fields[0] as String,
       titulo: fields[1] as String,
-      tipo: fields[2] as String,
+      tipo: (fields[2] is EventType)
+          ? fields[2] as EventType
+          : (fields[2] is String ? eventTypeFromString(fields[2] as String) : EventType.personal),
       inicio: fields[3] as DateTime,
       fin: fields[4] as DateTime?,
       lugar: fields[5] as String?,
@@ -31,13 +33,17 @@ class EventoAdapter extends TypeAdapter<Evento> {
       parentId: fields[11] as String?,
       isRecurringInstance: fields[12] as bool,
       reminders: (fields[13] as List?)?.cast<int>() ?? const [],
+      completada: fields[14] as bool? ?? false,
+      categoria: fields[15] as String?,
+      isTask: fields[16] as bool? ?? false,
+      hasDate: fields[17] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, Evento obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -65,7 +71,15 @@ class EventoAdapter extends TypeAdapter<Evento> {
       ..writeByte(12)
       ..write(obj.isRecurringInstance)
       ..writeByte(13)
-      ..write(obj.reminders);
+      ..write(obj.reminders)
+      ..writeByte(14)
+      ..write(obj.completada)
+      ..writeByte(15)
+      ..write(obj.categoria)
+      ..writeByte(16)
+      ..write(obj.isTask)
+      ..writeByte(17)
+      ..write(obj.hasDate);
   }
 
   @override

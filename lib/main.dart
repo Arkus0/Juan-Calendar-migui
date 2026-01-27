@@ -27,7 +27,7 @@ void main() async {
   // Configurar callback para manejar tap en notificaciones
   notificationService.onNotificationTapCallback = (String? payload) {
     if (payload == 'briefing_matutino') {
-      // Navegar a la AgendaScreen (índice 1)
+      // Navegar a la TareasScreen (índice 1)
       navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => const MainScreen(initialIndex: 1),

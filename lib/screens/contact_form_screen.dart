@@ -96,7 +96,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             const SizedBox(height: 20),
             if (widget.contacto == null) // Only show option for new contacts
               SwitchListTile(
-                title: const Text('Guardar también en agenda del móvil'),
+                title: const Text('Guardar también en contactos del móvil'),
                 value: _saveToDevice,
                 onChanged: (v) => setState(() => _saveToDevice = v),
               ),

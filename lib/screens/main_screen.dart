@@ -2,24 +2,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/event_type.dart';
+import '../providers/app_providers.dart';
 import '../services/voice_service.dart';
 import '../services/ocr_service.dart';
 import '../widgets/proposal_dialog.dart';
 import 'calendar_screen.dart';
-import 'agenda_screen.dart';
+import 'agenda_screen.dart' as tareas_screen;
 import 'contacts_screen.dart';
 import 'settings_screen.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
   final int initialIndex;
 
   const MainScreen({super.key, this.initialIndex = 0});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
   late int _currentIndex;
   late StreamSubscription _intentDataStreamSubscription;
   final VoiceService _voiceService = VoiceService();
@@ -28,7 +31,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     CalendarScreen(),
-    AgendaScreen(),
+    tareas_screen.TareasScreen(),
     ContactsScreen(),
   ];
 
@@ -75,12 +78,11 @@ class _MainScreenState extends State<MainScreen> {
     } else if (file.type == SharedMediaType.image) {
       if (file.path.isNotEmpty) {
         final text = await _ocrService.processImage(file.path);
+        if (!mounted) return;
         if (text.isNotEmpty) {
           _showProposal(text);
         } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo extraer texto de la imagen.')));
-          }
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo extraer texto de la imagen.')));
         }
       }
     }
@@ -101,6 +103,14 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     if (!mounted) return;
+
+    // Ensure voice service is initialized before starting listening
+    final initialized = await _voiceService.initialize();
+    if (!mounted) return;
+    if (!initialized) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo inicializar reconocimiento de voz')));
+      return;
+    }
 
     String recognizedText = "";
 
@@ -169,6 +179,60 @@ class _MainScreenState extends State<MainScreen> {
             tooltip: 'Añadir por voz',
             onPressed: _showVoiceDialog,
           ),
+          if (_currentIndex == 0) IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filtros',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (dialogContext) {
+                  return Consumer(
+                    builder: (context, dialogRef, _) {
+                      final filters = dialogRef.watch(eventFilterProvider);
+                      return AlertDialog(
+                        title: const Text('Filtros'),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 6,
+                                children: [
+                                  ...EventType.values.map((t) => FilterChip(
+                                    label: Text(t.displayName),
+                                    selected: filters.selectedTypes.contains(t),
+                                    onSelected: (_) => dialogRef.read(eventFilterProvider.notifier).toggleType(t),
+                                  )),
+                                  const SizedBox(width: 6),
+                                  FilterChip(
+                                    onSelected: (_) {},
+                                    label: const Text('Tareas'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              dialogRef.read(eventFilterProvider.notifier).clear();
+                            },
+                            child: const Text('Limpiar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Cerrar'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -198,7 +262,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           NavigationDestination(
             icon: Icon(Icons.checklist),
-            label: 'Agenda',
+            label: 'Tareas',
           ),
           NavigationDestination(
             icon: Icon(Icons.contacts),

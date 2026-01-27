@@ -40,4 +40,33 @@ class DossierTemplateNotifier extends Notifier<String> {
   }
 }
 
+// Provider for dossier attachment files
+final dossierFilesProvider = FutureProvider<List<String>>((ref) async {
+  final prefs = ref.read(preferencesServiceProvider);
+  return prefs.getDossierFiles();
+});
+
+// Notifier to manage selection & updates
+class DossierFilesNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    _loadFiles();
+    return [];
+  }
+
+  Future<void> _loadFiles() async {
+    final prefs = ref.read(preferencesServiceProvider);
+    final files = await prefs.getDossierFiles();
+    state = files;
+  }
+
+  Future<void> setFiles(List<String> files) async {
+    state = files;
+    final prefs = ref.read(preferencesServiceProvider);
+    await prefs.saveDossierFiles(files);
+  }
+}
+
+final dossierFilesNotifierProvider = NotifierProvider<DossierFilesNotifier, List<String>>(DossierFilesNotifier.new);
+
 final dossierTemplateProvider = NotifierProvider<DossierTemplateNotifier, String>(DossierTemplateNotifier.new);

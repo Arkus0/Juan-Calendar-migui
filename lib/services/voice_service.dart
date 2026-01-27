@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceService {
@@ -7,11 +8,31 @@ class VoiceService {
 
   Future<bool> initialize() async {
     if (_isInitialized) return true;
+
+    // Request microphone permission first
+    final micStatus = await Permission.microphone.request();
+    if (!micStatus.isGranted) {
+      debugPrint('Microphone permission denied');
+      return false;
+    }
+
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (error) => debugPrint('Voice error: $error'),
+        onError: (error) {
+          debugPrint('Voice error: $error');
+          _isInitialized = false;
+        },
         onStatus: (status) => debugPrint('Voice status: $status'),
       );
+
+      // Re-check availability
+      if (!_isInitialized) {
+        debugPrint('SpeechToText.initialize returned false, retrying once...');
+        _isInitialized = await _speechToText.initialize(
+          onError: (error) => debugPrint('Voice error retry: $error'),
+          onStatus: (status) => debugPrint('Voice status retry: $status'),
+        );
+      }
     } catch (e) {
       debugPrint('Voice init error: $e');
       _isInitialized = false;
@@ -51,6 +72,7 @@ class VoiceService {
         }
       },
       localeId: selectedLocale?.localeId,
+      listenFor: const Duration(seconds: 30),
       listenOptions: SpeechListenOptions(
         cancelOnError: true,
         partialResults: true,
@@ -58,6 +80,15 @@ class VoiceService {
       ),
     );
     onListeningStateChanged(true);
+
+    // Safety: if no result arrives after a timeout, stop listening and notify.
+    Future.delayed(const Duration(seconds: 35), () {
+      if (_speechToText.isListening) {
+        debugPrint('Voice timeout, stopping listen');
+        _speechToText.stop();
+        onListeningStateChanged(false);
+      }
+    });
   }
 
   Future<void> stopListening() async {

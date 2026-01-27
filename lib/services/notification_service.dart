@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import '../models/evento.dart';
-import '../models/tarea.dart';
 import '../models/recurrence_rule.dart';
 
 class NotificationService {
@@ -86,7 +85,7 @@ class NotificationService {
     const briefingChannel = AndroidNotificationChannel(
       'briefing_channel',
       'Briefing Matutino',
-      description: 'Notificación diaria para revisar tu agenda',
+      description: 'Notificación diaria para revisar tus tareas',
       importance: Importance.high,
       enableVibration: true,
       playSound: true,
@@ -235,30 +234,30 @@ class NotificationService {
     debugPrint('✅ Programadas $totalScheduled notificaciones para "${evento.titulo}"');
   }
 
-  /// Programa notificaciones para una tarea
-  /// 🔥 CORREGIDO: Ahora soporta tareas recurrentes
-  Future<void> scheduleTaskNotifications(Tarea tarea) async {
+  /// Programa notificaciones para una tarea representada por `Evento` (solo si tiene fecha)
+  Future<void> scheduleTaskNotifications(Evento evento) async {
     if (!_initialized) await initialize();
 
+    // Solo programar si es una tarea y tiene fecha
+    if (!evento.isTask || !evento.hasDate) return;
+
     // Cancelar notificaciones previas si existe
-    await cancelTaskNotifications(tarea.id);
+    await cancelTaskNotifications(evento.id);
 
     // Si la tarea está completada, no programar
-    if (tarea.completada) {
+    if (evento.completada) {
       return;
     }
 
-    // 🔥 NUEVA LÓGICA: Verificar si la tarea tiene recurrencia
-    List<Tarea> taskInstances;
+    // Obtener instancias (si tiene recurrencia)
+    List<Evento> taskInstances;
 
-    if (tarea.recurrence != null && tarea.recurrence!.type != RecurrenceType.none) {
-      // Tarea recurrente: generar todas las instancias
-      taskInstances = tarea.generateRecurringInstances();
-      debugPrint('🔄 Tarea recurrente detectada: ${tarea.descripcion}');
+    if (evento.recurrence != null && evento.recurrence!.type != RecurrenceType.none) {
+      taskInstances = evento.generateRecurringInstances();
+      debugPrint('🔄 Tarea recurrente detectada: ${evento.titulo}');
       debugPrint('   Programando notificaciones para ${taskInstances.length} instancias');
     } else {
-      // Tarea única: usar solo esta tarea
-      taskInstances = [tarea];
+      taskInstances = [evento];
     }
 
     // Programar notificaciones para cada instancia
@@ -267,20 +266,19 @@ class NotificationService {
       final instance = taskInstances[instanceIndex];
 
       // Si la instancia ya pasó, no programar
-      if (instance.fechaCompleta.isBefore(DateTime.now())) {
+      if (instance.inicio.isBefore(DateTime.now())) {
         continue;
       }
 
       // Programar cada recordatorio para esta instancia
       for (var reminderIndex = 0; reminderIndex < instance.reminders.length; reminderIndex++) {
         final reminder = instance.reminders[reminderIndex];
-        final notificationTime = instance.fechaCompleta.subtract(Duration(minutes: reminder));
+        final notificationTime = instance.inicio.subtract(Duration(minutes: reminder));
 
         // Solo programar si la notificación es futura
         if (notificationTime.isAfter(DateTime.now())) {
-          // 🔥 NUEVO: ID único que combina tarea + instancia + recordatorio
           final notificationId = _getRecurringTaskNotificationId(
-            tarea.id,
+            evento.id,
             instanceIndex,
             reminderIndex,
           );
@@ -288,18 +286,48 @@ class NotificationService {
           await _scheduleNotification(
             id: notificationId,
             title: '✅ No olvides:',
-            body: instance.descripcion,
+            body: instance.titulo,
             scheduledDate: notificationTime,
             channelId: 'tarea_channel',
-            payload: 'tarea:${tarea.id}:$instanceIndex',
+            payload: 'tarea:${evento.id}:$instanceIndex',
           );
 
           totalScheduled++;
         }
       }
+
+      // Notificaciones automáticas: una semana y un día antes de la fecha máxima
+      if (instance.hasDate) {
+        final fechaMax = instance.inicio;
+        final now = DateTime.now();
+        final unaSemanaAntes = fechaMax.subtract(const Duration(days: 7));
+        final unDiaAntes = fechaMax.subtract(const Duration(days: 1));
+        if (unaSemanaAntes.isAfter(now)) {
+          await _scheduleNotification(
+            id: fechaMax.hashCode ^ 7000,
+            title: '⏰ Tarea próxima a vencer',
+            body: 'Queda 1 semana para: ${instance.titulo}',
+            scheduledDate: unaSemanaAntes,
+            channelId: 'tarea_channel',
+            payload: 'tarea:${evento.id}:$instanceIndex',
+          );
+          totalScheduled++;
+        }
+        if (unDiaAntes.isAfter(now)) {
+          await _scheduleNotification(
+            id: fechaMax.hashCode ^ 1000,
+            title: '⏰ Tarea próxima a vencer',
+            body: 'Queda 1 día para: ${instance.titulo}',
+            scheduledDate: unDiaAntes,
+            channelId: 'tarea_channel',
+            payload: 'tarea:${evento.id}:$instanceIndex',
+          );
+          totalScheduled++;
+        }
+      }
     }
 
-    debugPrint('✅ Programadas $totalScheduled notificaciones para tarea "${tarea.descripcion}"');
+    debugPrint('✅ Programadas $totalScheduled notificaciones para tarea "${evento.titulo}"');
   }
 
   /// Programa una notificación individual
@@ -529,7 +557,7 @@ class NotificationService {
           android: AndroidNotificationDetails(
             'briefing_channel',
             'Briefing Matutino',
-            channelDescription: 'Notificación diaria para revisar tu agenda',
+            channelDescription: 'Notificación diaria para revisar tus tareas',
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
@@ -556,7 +584,7 @@ class NotificationService {
             android: AndroidNotificationDetails(
               'briefing_channel',
               'Briefing Matutino',
-              channelDescription: 'Notificación diaria para revisar tu agenda',
+              channelDescription: 'Notificación diaria para revisar tus tareas',
               importance: Importance.high,
               priority: Priority.high,
               icon: '@mipmap/ic_launcher',

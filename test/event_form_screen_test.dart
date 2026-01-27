@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:musician_organizer/screens/event_form_screen.dart';
 import 'package:musician_organizer/models/evento.dart';
+import 'package:musician_organizer/models/event_type.dart';
 import 'package:musician_organizer/services/hive_service.dart';
 
 void main() {
@@ -15,7 +16,7 @@ void main() {
     final event = Evento(
       id: 'test-id',
       titulo: 'Test Event',
-      tipo: 'bolo',
+      tipo: EventType.bolo,
       inicio: DateTime.now(),
     );
 

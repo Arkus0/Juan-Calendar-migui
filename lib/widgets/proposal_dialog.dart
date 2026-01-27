@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/event_type.dart';
 import '../screens/event_form_screen.dart';
 import '../screens/task_form_screen.dart';
 
@@ -91,6 +92,7 @@ class _ProposalDialogState extends State<ProposalDialog> {
         MaterialPageRoute(
           builder: (context) => TaskFormScreen(
             initialDescription: _textController.text,
+            initialNoDate: true,
           ),
         ),
       );
@@ -101,7 +103,7 @@ class _ProposalDialogState extends State<ProposalDialog> {
         MaterialPageRoute(
           builder: (context) => EventFormScreen(
             initialTitle: _textController.text,
-            initialType: _selectedType,
+            initialType: eventTypeFromString(_selectedType),
           ),
         ),
       );

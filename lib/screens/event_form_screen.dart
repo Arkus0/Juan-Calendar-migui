@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:file_selector/file_selector.dart';
+import '../services/preferences_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/evento.dart';
+import '../models/event_type.dart';
 import '../providers/data_providers.dart';
 import '../providers/settings_provider.dart';
 import '../services/whatsapp_service.dart';
@@ -11,7 +14,7 @@ import 'contact_form_screen.dart';
 class EventFormScreen extends ConsumerStatefulWidget {
   final Evento? evento;
   final String? initialTitle;
-  final String? initialType;
+  final EventType? initialType;
 
   const EventFormScreen({
     super.key,
@@ -29,12 +32,14 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
   late TextEditingController _titleController;
   late TextEditingController _placeController;
   late TextEditingController _notesController;
-  late String _type;
+  late EventType _type;
   late DateTime _startDate;
   late DateTime? _endDate;
 
   // For 'bolo' dossier integration
   String? _selectedContactId;
+  String? _selectedPdfPath;
+  String? _selectedPdfName;
 
   @override
   void initState() {
@@ -43,7 +48,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
     _titleController = TextEditingController(text: e?.titulo ?? widget.initialTitle ?? '');
     _placeController = TextEditingController(text: e?.lugar ?? '');
     _notesController = TextEditingController(text: e?.notas ?? '');
-    _type = e?.tipo ?? widget.initialType ?? 'bolo';
+    _type = e?.tipo ?? widget.initialType ?? EventType.bolo;
     _startDate = e?.inicio ?? DateTime.now();
     _endDate = e?.fin;
   }
@@ -54,6 +59,22 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
     _placeController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPdf() async {
+    try {
+      final file = await openFile(acceptedTypeGroups: [XTypeGroup(extensions: ['pdf'], label: 'PDF')]);
+      if (file != null) {
+        setState(() {
+          _selectedPdfPath = file.path;
+          _selectedPdfName = file.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al seleccionar PDF: $e')));
+      }
+    }
   }
 
   Future<void> _selectDateTime(bool isStart) async {
@@ -130,7 +151,24 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
 
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await WhatsAppService().sendDossier(phone: contact.telefono, message: message);
+      // Determine attachments: first prefer per-event selected PDF, else use saved attachments from prefs
+      List<String>? attachments;
+      if (_selectedPdfPath != null && _selectedPdfPath!.isNotEmpty) {
+        attachments = [_selectedPdfPath!];
+      } else {
+        final prefs = PreferencesService();
+        final saved = await prefs.getDossierFiles();
+        if (saved.isNotEmpty) attachments = saved;
+      }
+
+      await WhatsAppService().sendDossier(
+        phone: contact.telefono,
+        message: message,
+        pdfPaths: attachments,
+      );
+      if (mounted) {
+        messenger.showSnackBar(const SnackBar(content: Text('Compartido correctamente')));
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
@@ -192,10 +230,10 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<EventType>(
               initialValue: _type,
-              items: ['bolo', 'reunion', 'personal'].map((t) {
-                return DropdownMenuItem(value: t, child: Text(t.toUpperCase()));
+              items: EventType.values.map((t) {
+                return DropdownMenuItem(value: t, child: Text(t.displayName));
               }).toList(),
               onChanged: (v) => setState(() => _type = v!),
               decoration: const InputDecoration(labelText: 'Tipo'),
@@ -225,7 +263,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             ),
 
             // Sección Dossier si es 'bolo'
-            if (_type == 'bolo') ...[
+            if (_type == EventType.bolo) ...[
               const Divider(height: 32),
               const Text('Enviar Dossier', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               Row(
@@ -249,14 +287,26 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.send),
-                label: const Text('Enviar WhatsApp'),
-                onPressed: _selectedContactId == null ? null : _sendDossier,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.attach_file),
+                      label: Text(_selectedPdfPath == null ? 'Adjuntar PDF (opcional)' : 'PDF: $_selectedPdfName'),
+                      onPressed: _pickPdf,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.send),
+                    label: const Text('Enviar WhatsApp'),
+                    onPressed: _selectedContactId == null ? null : _sendDossier,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ]
           ],

@@ -1,10 +1,13 @@
 import 'package:hive_io/hive_io.dart';
 import 'recurrence_rule.dart';
+import 'event_type.dart';
 
 part 'evento.g.dart';
 
 @HiveType(typeId: 0)
 class Evento extends HiveObject {
+    @HiveField(18)
+    final List<String>? contactos; // IDs o nombres de contactos asociados
   @HiveField(0)
   final String id;
 
@@ -12,7 +15,7 @@ class Evento extends HiveObject {
   final String titulo;
 
   @HiveField(2)
-  final String tipo; // 'bolo', 'reunion', 'personal'
+  final EventType tipo; // EventType: bolo, reunion, personal, clases, laboral
 
   @HiveField(3)
   final DateTime inicio;
@@ -50,6 +53,19 @@ class Evento extends HiveObject {
   @HiveField(13)
   final List<int> reminders; // ej. [60, 1440] = 1 hora antes, 1 día antes
 
+  // Campos para tareas ahora fusionadas en Evento
+  @HiveField(14)
+  final bool completada; // Solo relevante si isTask == true
+
+  @HiveField(15)
+  final String? categoria; // Categoría para tareas (ej. Gestión, Marketing)
+
+  @HiveField(16)
+  final bool isTask; // Indica si este evento representa una tarea
+
+  @HiveField(17)
+  final bool hasDate; // Si false => tarea en backlog (sin fecha)
+
   Evento({
     required this.id,
     required this.titulo,
@@ -65,12 +81,17 @@ class Evento extends HiveObject {
     this.parentId,
     this.isRecurringInstance = false,
     this.reminders = const [],
+    this.completada = false,
+    this.categoria,
+    this.isTask = false,
+    this.hasDate = true,
+    this.contactos,
   });
 
   Evento copyWith({
     String? id,
     String? titulo,
-    String? tipo,
+    EventType? tipo,
     DateTime? inicio,
     DateTime? fin,
     String? lugar,
@@ -82,6 +103,11 @@ class Evento extends HiveObject {
     String? parentId,
     bool? isRecurringInstance,
     List<int>? reminders,
+    bool? completada,
+    String? categoria,
+    bool? isTask,
+    bool? hasDate,
+    List<String>? contactos,
   }) {
     return Evento(
       id: id ?? this.id,
@@ -98,6 +124,11 @@ class Evento extends HiveObject {
       parentId: parentId ?? this.parentId,
       isRecurringInstance: isRecurringInstance ?? this.isRecurringInstance,
       reminders: reminders ?? this.reminders,
+      completada: completada ?? this.completada,
+      categoria: categoria ?? this.categoria,
+      isTask: isTask ?? this.isTask,
+      hasDate: hasDate ?? this.hasDate,
+      contactos: contactos ?? this.contactos,
     );
   }
 
@@ -105,7 +136,7 @@ class Evento extends HiveObject {
     return {
       'id': id,
       'titulo': titulo,
-      'tipo': tipo,
+      'tipo': tipo.nameLower,
       'inicio': inicio.toIso8601String(),
       'fin': fin?.toIso8601String(),
       'lugar': lugar,
@@ -117,6 +148,11 @@ class Evento extends HiveObject {
       'parentId': parentId,
       'isRecurringInstance': isRecurringInstance,
       'reminders': reminders,
+      'completada': completada,
+      'categoria': categoria,
+      'isTask': isTask,
+      'hasDate': hasDate,
+      'contactos': contactos,
     };
   }
 
@@ -124,7 +160,7 @@ class Evento extends HiveObject {
     return Evento(
       id: json['id'] as String,
       titulo: json['titulo'] as String,
-      tipo: json['tipo'] as String,
+      tipo: json['tipo'] is String ? eventTypeFromString(json['tipo'] as String) : (json['tipo'] is int ? EventType.values[json['tipo'] as int] : EventType.personal),
       inicio: DateTime.parse(json['inicio'] as String),
       fin: json['fin'] != null ? DateTime.parse(json['fin'] as String) : null,
       lugar: json['lugar'] as String?,
@@ -138,6 +174,11 @@ class Evento extends HiveObject {
       parentId: json['parentId'] as String?,
       isRecurringInstance: json['isRecurringInstance'] as bool? ?? false,
       reminders: (json['reminders'] as List<dynamic>?)?.cast<int>() ?? [],
+      completada: json['completada'] as bool? ?? false,
+      categoria: json['categoria'] as String?,
+      isTask: json['isTask'] as bool? ?? false,
+      hasDate: json['hasDate'] as bool? ?? true,
+      contactos: (json['contactos'] as List<dynamic>?)?.cast<String>(),
     );
   }
 
@@ -172,7 +213,7 @@ class Evento extends HiveObject {
     return instances;
   }
 
-  bool get isBolo => tipo == 'bolo';
-  bool get isReunion => tipo == 'reunion';
-  bool get isPersonal => tipo == 'personal';
+  bool get isBolo => tipo == EventType.bolo;
+  bool get isReunion => tipo == EventType.reunion;
+  bool get isPersonal => tipo == EventType.personal;
 }
