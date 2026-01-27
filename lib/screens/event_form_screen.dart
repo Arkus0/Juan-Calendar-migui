@@ -142,9 +142,35 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
           if (widget.evento != null)
             IconButton(
               icon: const Icon(Icons.delete),
+              tooltip: 'Eliminar evento',
               onPressed: () {
-                ref.read(eventsProvider.notifier).deleteEvento(widget.evento!.id);
-                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Eliminar evento'),
+                    content: const Text(
+                        '¿Estás seguro de que quieres eliminar este evento?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref
+                              .read(eventsProvider.notifier)
+                              .deleteEvento(widget.evento!.id);
+                          Navigator.pop(context); // Close dialog
+                          Navigator.pop(context); // Close screen
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Eliminar'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           IconButton(icon: const Icon(Icons.check), onPressed: _save),
