@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_flutter_io/hive_flutter_io.dart';
 import '../models/evento.dart';
 import '../models/tarea.dart';
 import '../models/contacto.dart';
@@ -23,7 +23,7 @@ class HiveService {
     // Try platform-aware init first (normal app). If it fails (tests without plugins),
     // fallback to a filesystem temp init so tests can run headless.
     try {
-      await Hive.initFlutter();
+      await Hive.initFlutter(null);
     } catch (e) {
       // MissingPluginException or other plugin-init errors
       // Use system temp directory for tests or environments without path_provider

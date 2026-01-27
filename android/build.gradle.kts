@@ -18,10 +18,10 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 
-    // Ensure Java compilation target uses Java 17 to match Kotlin JVM target
+    // Ensure Java compilation target uses Java 1.8 to match Kotlin JVM target
     tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+        sourceCompatibility = "1.8"
+        targetCompatibility = "1.8"
     }
 }
 subprojects {
@@ -32,7 +32,8 @@ subprojects {
 // Use the compilerOptions DSL for Kotlin 1.8+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        freeCompilerArgs.addAll(listOf("-Xjvm-default=compatibility", "-jvm-target", "1.8"))
     }
 }
 
@@ -40,7 +41,17 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 rootProject.subprojects.find { it.name == "receive_sharing_intent" }?.let { proj ->
     proj.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        }
+    }
+}
+
+// Force Kotlin jvm target to 1.8 for all projects after evaluation to override plugins that set higher target
+gradle.projectsEvaluated {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+            freeCompilerArgs.addAll(listOf("-Xjvm-default=compatibility", "-jvm-target", "1.8"))
         }
     }
 }
