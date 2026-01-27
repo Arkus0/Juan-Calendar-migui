@@ -8,10 +8,10 @@ import '../services/device_contact_service.dart';
 class ContactFormScreen extends ConsumerStatefulWidget {
   final Contacto? contacto;
 
-  const ContactFormScreen({Key? key, this.contacto}) : super(key: key);
+  const ContactFormScreen({super.key, this.contacto});
 
   @override
-  _ContactFormScreenState createState() => _ContactFormScreenState();
+  ConsumerState<ContactFormScreen> createState() => _ContactFormScreenState();
 }
 
 class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
@@ -37,18 +37,15 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       if (_saveToDevice) {
+        final messenger = ScaffoldMessenger.of(context);
         try {
           await DeviceContactService().saveContact(
             firstName: _nameController.text,
             phone: _phoneController.text,
           );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Guardado en el dispositivo')));
-          }
+          messenger.showSnackBar(const SnackBar(content: Text('Guardado en el dispositivo')));
         } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar en dispositivo: $e')));
-          }
+          messenger.showSnackBar(SnackBar(content: Text('Error al guardar en dispositivo: $e')));
           // Continue saving in app
         }
       }
@@ -65,6 +62,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
       } else {
         ref.read(contactsProvider.notifier).updateContacto(newContact);
       }
+      if (!mounted) return;
       Navigator.pop(context);
     }
   }

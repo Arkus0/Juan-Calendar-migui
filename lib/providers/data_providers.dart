@@ -31,10 +31,11 @@ class EventsNotifier extends StateNotifier<List<Evento>> {
   EventsNotifier({
     required HiveService hiveService,
     required NotificationService notificationService,
+    bool loadOnInit = true,
   })  : _hiveService = hiveService,
         _notificationService = notificationService,
         super([]) {
-    _loadData();
+    if (loadOnInit) _loadData();
   }
 
   Future<void> _loadData() async {

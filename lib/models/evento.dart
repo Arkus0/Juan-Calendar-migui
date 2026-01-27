@@ -155,7 +155,7 @@ class Evento extends HiveObject {
         instances.add(this);
       } else {
         final occurrence = occurrences[i];
-        final duration = fin != null ? fin!.difference(inicio) : null;
+        final duration = fin?.difference(inicio);
 
         instances.add(
           copyWith(

@@ -7,7 +7,7 @@ import '../widgets/contact_card.dart';
 import 'contact_form_screen.dart';
 
 class ContactsScreen extends ConsumerWidget {
-  const ContactsScreen({Key? key}) : super(key: key);
+  const ContactsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,12 +15,13 @@ class ContactsScreen extends ConsumerWidget {
     final dossierTemplate = ref.watch(dossierTemplateProvider);
     final whatsappService = WhatsAppService();
 
-    void _sendDossier(String name, String phone) async {
+    void sendDossier(String name, String phone) async {
       final message = dossierTemplate.replaceAll('[Nombre]', name);
+      final messenger = ScaffoldMessenger.of(context);
       try {
         await whatsappService.sendDossier(phone: phone, message: message);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        messenger.showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
 
@@ -33,7 +34,7 @@ class ContactsScreen extends ConsumerWidget {
                 final contact = contacts[index];
                 return ContactCard(
                   contacto: contact,
-                  onSendDossier: () => _sendDossier(contact.nombre, contact.telefono),
+                  onSendDossier: () => sendDossier(contact.nombre, contact.telefono),
                 );
               },
             ),

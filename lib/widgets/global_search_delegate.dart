@@ -26,7 +26,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       inputDecorationTheme: InputDecorationTheme(
         border: InputBorder.none,
         hintStyle: TextStyle(
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withAlpha((0.5 * 255).round()),
         ),
       ),
     );
@@ -69,13 +69,13 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
             Icon(
               Icons.search,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha((0.3 * 255).round()),
             ),
             const SizedBox(height: 16),
             Text(
               'Busca eventos, tareas o contactos',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round()),
                 fontSize: 16,
               ),
             ),
@@ -109,13 +109,13 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
             Icon(
               Icons.search_off,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha((0.3 * 255).round()),
             ),
             const SizedBox(height: 16),
             Text(
               'No se encontraron resultados',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round()),
                 fontSize: 16,
               ),
             ),
@@ -148,7 +148,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
   Widget _buildSectionHeader(BuildContext context, String title, int count) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha((0.3 * 255).round()),
       child: Row(
         children: [
           Text(
@@ -163,7 +163,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.primary.withAlpha((0.1 * 255).round()),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -190,7 +190,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.2),
+        backgroundColor: color.withAlpha((0.2 * 255).round()),
         child: Icon(
           evento.isBolo ? Icons.music_note : Icons.event,
           color: color,
@@ -213,7 +213,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round()),
       ),
       onTap: () {
         close(context, '');
@@ -233,8 +233,8 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: tarea.completada
-            ? Colors.green.withOpacity(0.2)
-            : Colors.orange.withOpacity(0.2),
+            ? Colors.green.withAlpha((0.2 * 255).round())
+            : Colors.orange.withAlpha((0.2 * 255).round()),
         child: Icon(
           tarea.completada ? Icons.check_circle : Icons.circle_outlined,
           color: tarea.completada ? Colors.green : Colors.orange,
@@ -260,7 +260,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round()),
       ),
       onTap: () {
         close(context, '');
@@ -277,7 +277,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
   Widget _buildContactoTile(BuildContext context, Contacto contacto) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        backgroundColor: Theme.of(context).colorScheme.primary.withAlpha((0.2 * 255).round()),
         child: Text(
           contacto.nombre[0].toUpperCase(),
           style: TextStyle(
@@ -303,7 +303,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round()),
       ),
       onTap: () {
         close(context, '');

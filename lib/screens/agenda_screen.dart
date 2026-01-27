@@ -8,7 +8,7 @@ import '../widgets/task_card.dart';
 import 'task_form_screen.dart';
 
 class AgendaScreen extends ConsumerWidget {
-  const AgendaScreen({Key? key}) : super(key: key);
+  const AgendaScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -13,10 +13,10 @@ import 'settings_screen.dart';
 class MainScreen extends StatefulWidget {
   final int initialIndex;
 
-  const MainScreen({Key? key, this.initialIndex = 0}) : super(key: key);
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
@@ -51,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       _processSharedFiles(value);
     }, onError: (err) {
-      print("getIntentDataStream error: $err");
+      debugPrint("getIntentDataStream error: $err");
     });
 
     // Initial
@@ -99,6 +99,8 @@ class _MainScreenState extends State<MainScreen> {
       status = await Permission.microphone.request();
       if (!status.isGranted) return;
     }
+
+    if (!mounted) return;
 
     String recognizedText = "";
 

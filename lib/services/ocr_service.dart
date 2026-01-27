@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class OcrService {
@@ -9,7 +10,7 @@ class OcrService {
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
       return recognizedText.text;
     } catch (e) {
-      print('OCR Error: $e');
+      debugPrint('OCR Error: $e');
       return '';
     }
   }
