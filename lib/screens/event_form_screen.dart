@@ -178,7 +178,11 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                 );
               },
             ),
-          IconButton(icon: const Icon(Icons.check), onPressed: _save),
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: 'Guardar cambios',
+            onPressed: _save,
+          ),
         ],
       ),
       body: Form(
@@ -188,7 +192,10 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
           children: [
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Título'),
+              decoration: const InputDecoration(
+                labelText: 'Título',
+                prefixIcon: Icon(Icons.title),
+              ),
               validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
             ),
             const SizedBox(height: 16),
@@ -198,7 +205,10 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                 return DropdownMenuItem(value: t, child: Text(t.toUpperCase()));
               }).toList(),
               onChanged: (v) => setState(() => _type = v!),
-              decoration: const InputDecoration(labelText: 'Tipo'),
+              decoration: const InputDecoration(
+                labelText: 'Tipo',
+                prefixIcon: Icon(Icons.category),
+              ),
             ),
             const SizedBox(height: 16),
             ListTile(
@@ -215,12 +225,18 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             ),
             TextFormField(
               controller: _placeController,
-              decoration: const InputDecoration(labelText: 'Lugar'),
+              decoration: const InputDecoration(
+                labelText: 'Lugar',
+                prefixIcon: Icon(Icons.location_on),
+              ),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notas'),
+              decoration: const InputDecoration(
+                labelText: 'Notas',
+                prefixIcon: Icon(Icons.description),
+              ),
               maxLines: 3,
             ),
 
