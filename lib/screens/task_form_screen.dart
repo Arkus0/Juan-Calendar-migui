@@ -85,14 +85,44 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         title: Text(widget.tarea == null ? 'Nueva Tarea' : 'Editar Tarea'),
         actions: [
           if (widget.tarea != null)
-             IconButton(
+            IconButton(
               icon: const Icon(Icons.delete),
+              tooltip: 'Eliminar tarea',
               onPressed: () {
-                ref.read(tasksProvider.notifier).deleteTarea(widget.tarea!.id);
-                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Eliminar tarea'),
+                    content: const Text(
+                        '¿Estás seguro de que quieres eliminar esta tarea?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref
+                              .read(tasksProvider.notifier)
+                              .deleteTarea(widget.tarea!.id);
+                          Navigator.pop(dialogContext); // Close dialog
+                          Navigator.pop(context); // Close screen
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Eliminar'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
-          IconButton(icon: const Icon(Icons.check), onPressed: _save),
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: 'Guardar tarea',
+            onPressed: _save,
+          ),
         ],
       ),
       body: Form(
