@@ -210,18 +210,19 @@ class HiveService {
   Map<String, List<dynamic>> searchAll(String query) {
     final lowercaseQuery = query.toLowerCase();
 
-    final eventos = getAllEventos().where((evento) {
+    // Optimización: Buscar directamente en las cajas para evitar generar instancias recurrentes (O(N))
+    final eventos = eventosBoxInstance.values.where((evento) {
       return evento.titulo.toLowerCase().contains(lowercaseQuery) ||
           (evento.lugar?.toLowerCase().contains(lowercaseQuery) ?? false) ||
           (evento.notas?.toLowerCase().contains(lowercaseQuery) ?? false);
     }).toList();
 
-    final tareas = getAllTareas().where((tarea) {
+    final tareas = tareasBoxInstance.values.where((tarea) {
       return tarea.descripcion.toLowerCase().contains(lowercaseQuery) ||
           (tarea.categoria?.toLowerCase().contains(lowercaseQuery) ?? false);
     }).toList();
 
-    final contactos = getAllContactos().where((contacto) {
+    final contactos = contactosBoxInstance.values.where((contacto) {
       return contacto.nombre.toLowerCase().contains(lowercaseQuery) ||
           contacto.telefono.contains(query) ||
           (contacto.email?.toLowerCase().contains(lowercaseQuery) ?? false);
