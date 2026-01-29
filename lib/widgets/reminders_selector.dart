@@ -38,6 +38,7 @@ class _RemindersSelectorState extends State<RemindersSelector> {
           ),
           trailing: IconButton(
             icon: const Icon(Icons.add_circle),
+            tooltip: 'Añadir recordatorio',
             onPressed: _showAddReminderDialog,
           ),
         ),
