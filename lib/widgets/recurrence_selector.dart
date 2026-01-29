@@ -42,6 +42,7 @@ class _RecurrenceSelectorState extends State<RecurrenceSelector> {
             child: Chip(
               label: Text(_rule!.getDisplayText()),
               deleteIcon: const Icon(Icons.close, size: 18),
+              deleteButtonTooltipMessage: 'Eliminar repetición',
               onDeleted: () {
                 setState(() {
                   _rule = null;

@@ -171,6 +171,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Ajustes',
             onPressed: () {
               Navigator.push(
                 context,

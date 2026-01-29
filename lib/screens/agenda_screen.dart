@@ -134,6 +134,7 @@ class AgendaScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'agenda_fab',
+        tooltip: 'Añadir tarea',
         onPressed: () {
           Navigator.push(
             context,
