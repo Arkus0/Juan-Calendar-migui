@@ -111,6 +111,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
+            tooltip: 'Guardar ajustes',
             onPressed: () {
               ref.read(dossierTemplateProvider.notifier).updateTemplate(_controller.text);
               ScaffoldMessenger.of(context).showSnackBar(

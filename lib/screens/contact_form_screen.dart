@@ -73,7 +73,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
       appBar: AppBar(
         title: Text(widget.contacto == null ? 'Nuevo Contacto' : 'Editar Contacto'),
         actions: [
-           IconButton(icon: const Icon(Icons.check), onPressed: _save),
+           IconButton(
+             icon: const Icon(Icons.check),
+             tooltip: 'Guardar contacto',
+             onPressed: _save,
+           ),
         ],
       ),
       body: Form(
