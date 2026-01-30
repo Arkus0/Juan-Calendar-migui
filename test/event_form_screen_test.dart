@@ -31,6 +31,10 @@ void main() {
     final deleteButtonFinder = find.byIcon(Icons.delete);
     expect(deleteButtonFinder, findsOneWidget);
 
+    // Verify tooltip
+    final tooltipFinder = find.byTooltip('Eliminar evento');
+    expect(tooltipFinder, findsOneWidget, reason: 'Delete button should have a tooltip');
+
     // Tap delete button
     await tester.tap(deleteButtonFinder);
     await tester.pumpAndSettle();

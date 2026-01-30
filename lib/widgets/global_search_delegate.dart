@@ -38,6 +38,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
       if (query.isNotEmpty)
         IconButton(
           icon: const Icon(Icons.clear),
+          tooltip: 'Borrar búsqueda',
           onPressed: () {
             query = '';
             showSuggestions(context);
@@ -50,6 +51,7 @@ class GlobalSearchDelegate extends SearchDelegate<String> {
   Widget buildLeading(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.arrow_back),
+      tooltip: 'Volver',
       onPressed: () => close(context, ''),
     );
   }
