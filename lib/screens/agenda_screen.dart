@@ -29,18 +29,16 @@ class AgendaScreen extends ConsumerWidget {
       return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
     }
 
-    List<Widget> buildTaskList() {
+    List<AgendaItem> buildAgendaItems() {
       List<Tarea> filteredTasks = [];
+      List<AgendaItem> items = [];
 
       if (viewMode == AgendaViewMode.day) {
         filteredTasks = tasks.where((t) => isSameDate(t.fecha, selectedDate)).toList();
         if (filteredTasks.isEmpty) {
-           return [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas para hoy")))];
+           return [AgendaEmptyItem("No hay tareas para hoy")];
         }
-        return filteredTasks.map((t) => TaskCard(
-          tarea: t,
-          onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(t.id),
-        )).toList();
+        return filteredTasks.map((t) => AgendaTaskItem(t)).toList();
 
       } else if (viewMode == AgendaViewMode.week) {
         final start = getStartOfWeek(selectedDate);
@@ -57,22 +55,15 @@ class AgendaScreen extends ConsumerWidget {
 
         Map<String, List<Tarea>> grouped = {};
         for (var t in filteredTasks) {
-          final dateStr = DateFormat('EEEE, d MMM', 'es').format(t.fecha); // Need 'es' locale, but assuming default/system
+          final dateStr = DateFormat('EEEE, d MMM', 'es').format(t.fecha);
           grouped.putIfAbsent(dateStr, () => []).add(t);
         }
 
-        List<Widget> widgets = [];
         grouped.forEach((key, value) {
-          widgets.add(Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ));
-          widgets.addAll(value.map((t) => TaskCard(
-            tarea: t,
-            onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(t.id),
-          )));
+          items.add(AgendaHeaderItem(key, style: const TextStyle(fontWeight: FontWeight.bold)));
+          items.addAll(value.map((t) => AgendaTaskItem(t)));
         });
-        return widgets.isEmpty ? [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas esta semana")))] : widgets;
+        return items.isEmpty ? [AgendaEmptyItem("No hay tareas esta semana")] : items;
 
       } else {
         // Month
@@ -89,20 +80,15 @@ class AgendaScreen extends ConsumerWidget {
           grouped.putIfAbsent(weekStr, () => []).add(t);
         }
 
-        List<Widget> widgets = [];
         grouped.forEach((key, value) {
-          widgets.add(Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(key, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-          ));
-          widgets.addAll(value.map((t) => TaskCard(
-            tarea: t,
-            onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(t.id),
-          )));
+          items.add(AgendaHeaderItem(key, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)));
+          items.addAll(value.map((t) => AgendaTaskItem(t)));
         });
-        return widgets.isEmpty ? [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas este mes")))] : widgets;
+        return items.isEmpty ? [AgendaEmptyItem("No hay tareas este mes")] : items;
       }
     }
+
+    final items = buildAgendaItems();
 
     return Scaffold(
       body: Column(
@@ -126,8 +112,30 @@ class AgendaScreen extends ConsumerWidget {
              child: Text("Fecha seleccionada: ${DateFormat('d/MM/yyyy').format(selectedDate)}", style: const TextStyle(color: Colors.grey)),
           ),
           Expanded(
-            child: ListView(
-              children: buildTaskList(),
+            child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                if (item is AgendaHeaderItem) {
+                   return Padding(
+                     padding: const EdgeInsets.all(8.0),
+                     child: Text(item.text, style: item.style),
+                   );
+                } else if (item is AgendaTaskItem) {
+                   return TaskCard(
+                     tarea: item.tarea,
+                     onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(item.tarea.id),
+                   );
+                } else if (item is AgendaEmptyItem) {
+                   return Center(
+                     child: Padding(
+                       padding: const EdgeInsets.all(20),
+                       child: Text(item.message),
+                     ),
+                   );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ),
         ],
@@ -146,4 +154,23 @@ class AgendaScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// Sealed class hierarchy for Agenda items to support ListView.builder
+sealed class AgendaItem {}
+
+class AgendaHeaderItem extends AgendaItem {
+  final String text;
+  final TextStyle? style;
+  AgendaHeaderItem(this.text, {this.style});
+}
+
+class AgendaTaskItem extends AgendaItem {
+  final Tarea tarea;
+  AgendaTaskItem(this.tarea);
+}
+
+class AgendaEmptyItem extends AgendaItem {
+  final String message;
+  AgendaEmptyItem(this.message);
 }
