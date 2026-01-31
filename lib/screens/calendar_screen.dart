@@ -92,6 +92,7 @@ class CalendarScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'calendar_fab',
+        tooltip: 'Añadir evento',
         onPressed: () {
           Navigator.push(
             context,
