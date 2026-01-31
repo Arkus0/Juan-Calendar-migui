@@ -167,10 +167,11 @@ class TasksNotifier extends StateNotifier<List<Tarea>> {
   TasksNotifier({
     required HiveService hiveService,
     required NotificationService notificationService,
+    bool loadOnInit = true,
   })  : _hiveService = hiveService,
         _notificationService = notificationService,
         super([]) {
-    _loadData();
+    if (loadOnInit) _loadData();
   }
 
   Future<void> _loadData() async {
