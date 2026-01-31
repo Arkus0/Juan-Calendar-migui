@@ -97,6 +97,7 @@ void main() {
     // Check content
     expect(find.text('Event 0'), findsOneWidget);
     expect(find.text('Event 19'), findsOneWidget);
+    expect(find.byTooltip('Añadir evento'), findsOneWidget);
 
     // Cleanup
     addTearDown(tester.view.resetPhysicalSize);

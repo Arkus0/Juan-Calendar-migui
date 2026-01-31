@@ -29,13 +29,40 @@ class AgendaScreen extends ConsumerWidget {
       return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
     }
 
+    Widget _buildEmptyState(String message) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 60.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.assignment_turned_in_outlined,
+                size: 80,
+                color: Theme.of(context).disabledColor.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).disabledColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     List<Widget> buildTaskList() {
       List<Tarea> filteredTasks = [];
 
       if (viewMode == AgendaViewMode.day) {
         filteredTasks = tasks.where((t) => isSameDate(t.fecha, selectedDate)).toList();
         if (filteredTasks.isEmpty) {
-           return [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas para hoy")))];
+           return [_buildEmptyState("No hay tareas para hoy")];
         }
         return filteredTasks.map((t) => TaskCard(
           tarea: t,
@@ -72,7 +99,7 @@ class AgendaScreen extends ConsumerWidget {
             onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(t.id),
           )));
         });
-        return widgets.isEmpty ? [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas esta semana")))] : widgets;
+        return widgets.isEmpty ? [_buildEmptyState("No hay tareas esta semana")] : widgets;
 
       } else {
         // Month
@@ -100,7 +127,7 @@ class AgendaScreen extends ConsumerWidget {
             onToggle: (_) => ref.read(tasksProvider.notifier).toggleTarea(t.id),
           )));
         });
-        return widgets.isEmpty ? [const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No hay tareas este mes")))] : widgets;
+        return widgets.isEmpty ? [_buildEmptyState("No hay tareas este mes")] : widgets;
       }
     }
 
@@ -134,6 +161,7 @@ class AgendaScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'agenda_fab',
+        tooltip: 'Añadir tarea',
         onPressed: () {
           Navigator.push(
             context,
